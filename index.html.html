@@ -621,29 +621,61 @@ function loadData(){const s=localStorage.getItem(STORAGE_KEY);if(s)try{return JS
 function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
 function getDefaultData(){return{profile:{name:'Arif Rahman',openingBalance:285000},transactions:[{id:1,type:'expense',amount:1200,cat:'Food & Dining',desc:'Lunch at Bashundhara',date:'2026-04-22',emoji:'🍛'},{id:2,type:'expense',amount:800,cat:'Transport',desc:'Uber rides (April)',date:'2026-04-21',emoji:'🚗'},{id:3,type:'income',amount:45000,cat:'Salary',desc:'April Salary – Company',date:'2026-04-20',emoji:'💼'},{id:4,type:'expense',amount:3500,cat:'Shopping',desc:'Aarong — Eid shopping',date:'2026-04-19',emoji:'🛍️'},{id:5,type:'expense',amount:600,cat:'Entertainment',desc:'Netflix & Hoichoi',date:'2026-04-18',emoji:'🎬'},{id:6,type:'income',amount:12000,cat:'Freelance',desc:'Web design project',date:'2026-04-17',emoji:'💻'},{id:7,type:'expense',amount:9000,cat:'Housing',desc:'April rent – Mirpur',date:'2026-04-15',emoji:'🏠'},{id:8,type:'expense',amount:450,cat:'Health',desc:'Square pharmacy',date:'2026-04-14',emoji:'💊'},{id:9,type:'expense',amount:2200,cat:'Food & Dining',desc:'Grocery — Shwapno',date:'2026-04-13',emoji:'🛒'},{id:10,type:'expense',amount:1500,cat:'Education',desc:'Udemy online course',date:'2026-04-10',emoji:'📚'},{id:11,type:'income',amount:3000,cat:'Other Income',desc:'Interest – DPS account',date:'2026-04-05',emoji:'🏦'},{id:12,type:'expense',amount:700,cat:'Transport',desc:'CNG + bus fares',date:'2026-04-03',emoji:'🚌'}],budgets:[{id:1,cat:'Food & Dining',limit:8000,color:'#4f8ef7'},{id:2,cat:'Transport',limit:3000,color:'#10b981'},{id:3,cat:'Shopping',limit:5000,color:'#f59e0b'},{id:4,cat:'Entertainment',limit:2000,color:'#7c3aed'},{id:5,cat:'Housing',limit:12000,color:'#ef4444'},{id:6,cat:'Health',limit:2000,color:'#ec4899'}],goals:[{id:1,name:'Emergency Fund',emoji:'🛡️',target:200000,saved:85000,color:'#4f8ef7'},{id:2,name:'Laptop Upgrade',emoji:'💻',target:80000,saved:52000,color:'#7c3aed'},{id:3,name:"Vacation — Cox's Bazar",emoji:'🏖️',target:60000,saved:18000,color:'#10b981'},{id:4,name:'Car Down Payment',emoji:'🚗',target:300000,saved:95000,color:'#f59e0b'},{id:5,name:'Home Renovation',emoji:'🏡',target:150000,saved:30000,color:'#ef4444'},{id:6,name:'Investment Corpus',emoji:'📈',target:500000,saved:220000,color:'#ec4899'}],investments:[{id:1,name:'BRAC Bank Shares',type:'Stocks',principal:50000,current:63500,notes:'DSE listed'},{id:2,name:'AIBL Mutual Fund',type:'Mutual Fund',principal:30000,current:33800,notes:'Monthly dividend'},{id:3,name:'FDR – Dutch Bangla',type:'FDR',principal:100000,current:107500,notes:'12 month, 7.5%'},{id:4,name:'Premium Savings Bond',type:'Savings Bond',principal:25000,current:27250,notes:'Govt 3yr bond'}]}}
 let DATA=loadData();
+syncCatsFromData(); // Point CATS into DATA.categories
+
+// ── Migrate old phone/device categories if they exist ──────────────────────
+(function migrateLegacyCats(){
+  try{
+    const old = localStorage.getItem('finvault_categories');
+    if(!old) return;
+    const parsed = JSON.parse(old);
+    if(!parsed || !parsed.expense) return;
+    // Merge: add any categories from old storage that don't exist in current DATA
+    ['expense','income','invest'].forEach(type=>{
+      if(!parsed[type]) return;
+      parsed[type].forEach(oldCat=>{
+        const exists = DATA.categories[type].find(c=>c.name===oldCat.name);
+        if(!exists) DATA.categories[type].push(oldCat);
+      });
+    });
+    saveData(); // Push merged categories to Firebase
+    localStorage.removeItem('finvault_categories'); // Clean up old key
+    console.log('✅ Migrated legacy categories to cloud');
+  }catch(e){}
+})();
 // ── Category & Investment-type storage ──────────────────────────────────────
-const CAT_KEY = 'finvault_categories';
 const DEFAULT_EXPENSE_CATS = [{name:'Food & Dining',emoji:'🍛',color:'#4f8ef7'},{name:'Transport',emoji:'🚗',color:'#10b981'},{name:'Shopping',emoji:'🛍️',color:'#f59e0b'},{name:'Housing',emoji:'🏠',color:'#ef4444'},{name:'Entertainment',emoji:'🎬',color:'#7c3aed'},{name:'Health',emoji:'💊',color:'#ec4899'},{name:'Education',emoji:'📚',color:'#06b6d4'},{name:'Utilities',emoji:'⚡',color:'#84cc16'},{name:'Personal Care',emoji:'💅',color:'#f472b6'},{name:'Other',emoji:'💸',color:'#94a3b8'}];
 const DEFAULT_INCOME_CATS  = [{name:'Salary',emoji:'💼',color:'#10b981'},{name:'Freelance',emoji:'💻',color:'#34d399'},{name:'Business',emoji:'🏢',color:'#a78bfa'},{name:'Investment Return',emoji:'📈',color:'#4ade80'},{name:'Rental Income',emoji:'🔑',color:'#fb923c'},{name:'Other Income',emoji:'💰',color:'#38bdf8'}];
 const DEFAULT_INVEST_TYPES = [{name:'Stocks',color:'#4f8ef7'},{name:'Mutual Fund',color:'#7c3aed'},{name:'FDR',color:'#10b981'},{name:'Savings Bond',color:'#f59e0b'},{name:'Real Estate',color:'#ef4444'},{name:'Crypto',color:'#ec4899'},{name:'Other',color:'#94a3b8'}];
-function loadCats(){try{const s=localStorage.getItem(CAT_KEY);if(s)return JSON.parse(s)}catch(e){}return{expense:[...DEFAULT_EXPENSE_CATS],income:[...DEFAULT_INCOME_CATS],invest:[...DEFAULT_INVEST_TYPES]}}
-function saveCats(){localStorage.setItem(CAT_KEY,JSON.stringify(CATS))}
-let CATS=loadCats();
+const DEFAULT_CATEGORIES = {expense:[...DEFAULT_EXPENSE_CATS],income:[...DEFAULT_INCOME_CATS],invest:[...DEFAULT_INVEST_TYPES]};
+
+// CATS is always a live reference into DATA.categories
+// so every save via saveData() / Firebase automatically includes categories
+let CATS = DEFAULT_CATEGORIES; // will be re-pointed after DATA loads
+
+function syncCatsFromData(){
+  // Ensure DATA has categories; merge defaults for missing keys
+  if(!DATA.categories) DATA.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  if(!DATA.categories.expense) DATA.categories.expense = [...DEFAULT_EXPENSE_CATS];
+  if(!DATA.categories.income)  DATA.categories.income  = [...DEFAULT_INCOME_CATS];
+  if(!DATA.categories.invest)  DATA.categories.invest  = [...DEFAULT_INVEST_TYPES];
+  CATS = DATA.categories;
+}
+function saveCats(){
+  // Categories live inside DATA — just call saveData() which handles localStorage + Firebase
+  saveData();
+}
 function getExpenseCats(){return CATS.expense.map(c=>c.name)}
 function getIncomeCats(){return CATS.income.map(c=>c.name)}
 function getAllCats(){return [...getExpenseCats(),...getIncomeCats()]}
 function getInvestTypes(){return CATS.invest.map(c=>c.name)}
-// Legacy lookup helpers (dynamic)
 function getCatEmoji(name){const all=[...CATS.expense,...CATS.income];const f=all.find(c=>c.name===name);return f?f.emoji:'💸'}
 function getCatColor(name){const all=[...CATS.expense,...CATS.income];const f=all.find(c=>c.name===name);return f?f.color:'#4f8ef7'}
 function getInvestColor(name){const f=CATS.invest.find(c=>c.name===name);return f?f.color:'#4f8ef7'}
-// Aliases for legacy inline usage
-const EXPENSE_CATS=getExpenseCats();
-const INCOME_CATS=getIncomeCats();
-const ALL_CATS=getAllCats();
-const CAT_EMOJI=Object.fromEntries([...CATS.expense,...CATS.income].map(c=>[c.name,c.emoji]));
-const CAT_COLOR=Object.fromEntries([...CATS.expense,...CATS.income].map(c=>[c.name,c.color]));
-const INVEST_COLOR=Object.fromEntries(CATS.invest.map(c=>[c.name,c.color]));
+// Legacy aliases (kept for any inline template usage)
+function getCAT_EMOJI(){return Object.fromEntries([...CATS.expense,...CATS.income].map(c=>[c.name,c.emoji]))}
+function getCAT_COLOR(){return Object.fromEntries([...CATS.expense,...CATS.income].map(c=>[c.name,c.color]))}
+function getINVEST_COLOR(){return Object.fromEntries(CATS.invest.map(c=>[c.name,c.color]))}
 const GOAL_COLORS=['#4f8ef7','#7c3aed','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4','#84cc16'];
 let goalColorIdx=0;
 const fmt=n=>'৳'+Math.abs(Math.round(n)).toLocaleString('en-IN');
@@ -1129,6 +1161,7 @@ async function initFirebase() {
         const remote = snap.data();
         if (remote && remote.transactions) {
           DATA = remote;
+          syncCatsFromData(); // Re-point CATS to cloud data
           localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
           renderAll();
           toast('Data synced from cloud ☁️', 'info');
@@ -1148,6 +1181,7 @@ async function initFirebase() {
         const remote = snap.data();
         if (remote && remote.transactions) {
           DATA = remote;
+          syncCatsFromData(); // Re-point CATS to latest cloud data
           localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
           renderAll();
         }
