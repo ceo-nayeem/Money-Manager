@@ -1,7 +1,3 @@
-bash
-
-cat > /mnt/user-data/outputs/money_management_app.html << 'HTMLEOF'
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -758,6 +754,10 @@ window.addEventListener('load',()=>{
 });
   
 
+// ─── Firebase Integration ───────────────────────────────────────────────────
+// We use Firebase Firestore to persist data across devices.
+// The app also falls back to localStorage if Firebase is unavailable.
+
 const firebaseConfig = {
   apiKey: "AIzaSyA6yfB8x0tEbfkfMU1iy0l_QCDScM6Jc1c",
   authDomain: "money-manager-v01.firebaseapp.com",
@@ -766,9 +766,88 @@ const firebaseConfig = {
   messagingSenderId: "727186041987",
   appId: "1:727186041987:web:1813db6ba4bbc434fa3fb6"
 };
-  
+
+// Firestore document reference (one doc per user, using a fixed device key)
+let db = null;
+const DEVICE_KEY = localStorage.getItem('finvault_device_key') || (() => {
+  const k = 'dev_' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem('finvault_device_key', k);
+  return k;
+})();
+const DOC_PATH = `users/${DEVICE_KEY}`;
+
+let firebaseSyncing = false;
+
+async function initFirebase() {
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    const docRef = doc(db, DOC_PATH);
+
+    // Try to load from Firestore first
+    try {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const remote = snap.data();
+        if (remote && remote.transactions) {
+          DATA = remote;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+          renderAll();
+          toast('Data synced from cloud ☁️', 'info');
+        }
+      } else {
+        // No remote data — upload local
+        await setDoc(docRef, DATA);
+      }
+    } catch (e) {
+      console.warn('Firestore read error:', e);
+    }
+
+    // Listen for real-time changes
+    onSnapshot(docRef, (snap) => {
+      if (firebaseSyncing) return; // Ignore our own writes
+      if (snap.exists()) {
+        const remote = snap.data();
+        if (remote && remote.transactions) {
+          DATA = remote;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+          renderAll();
+        }
+      }
+    }, (err) => {
+      console.warn('Firestore listener error:', err);
+    });
+
+    console.log('✅ Firebase connected');
+  } catch (e) {
+    console.warn('Firebase init failed, using localStorage only:', e);
+    toast('Offline mode – data saved locally', 'info');
+  }
+}
+
+// Override saveData to also sync to Firestore
+const _origSaveData = saveData;
+window.saveData = async function() {
+  _origSaveData(); // Always save to localStorage first
+  if (!db) return;
+  firebaseSyncing = true;
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const docRef = doc(db, DOC_PATH);
+    await setDoc(docRef, JSON.parse(JSON.stringify(DATA)));
+  } catch (e) {
+    console.warn('Firestore write error:', e);
+  } finally {
+    setTimeout(() => { firebaseSyncing = false; }, 500);
+  }
+};
+
+// Init Firebase after page loads
+window.addEventListener('load', () => {
+  initFirebase();
+});
 </script>
 </body>
 </html>
-HTMLEOF
-echo "Done"
