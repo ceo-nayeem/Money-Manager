@@ -65,7 +65,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .kpi-change{font-size:11px;margin-top:6px}
 .up{color:#10b981}.down{color:#ef4444}
 .kpi-icon{position:absolute;right:14px;top:14px;font-size:18px;opacity:0.12}
-.charts-row{display:grid;grid-template-columns:1fr 320px;gap:14px;margin-bottom:20px;height:50vh}
+.charts-row{display:grid;grid-template-columns:1fr 320px;gap:14px;margin-bottom:20px;height:auto}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);padding:18px}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px}
 .card-title{font-size:13px;font-weight:600;flex-shrink:0}
@@ -249,7 +249,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
             <div class="card-header"><span class="card-title">Cash Flow Overview</span>
               <div class="tab-group"><div class="tab active" onclick="switchFlowChart(this,'6M')">6M</div><div class="tab" onclick="switchFlowChart(this,'3M')">3M</div><div class="tab" onclick="switchFlowChart(this,'1M')">1M</div></div>
             </div>
-            <canvas id="flowChart" height="50vh"></canvas>
+            <canvas id="flowChart"></canvas>
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">Spending by Category</span></div>
