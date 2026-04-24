@@ -779,7 +779,7 @@ const DEVICE_KEY = localStorage.getItem('finvault_device_key') || (() => {
   localStorage.setItem('finvault_device_key', k);
   return k;
 })();
-const DOC_PATH = `users/${DEVICE_KEY}`;
+const DOC_PATH = "users/global_data";
 
 let firebaseSyncing = false;
 
