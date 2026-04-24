@@ -980,7 +980,7 @@ window.addEventListener('load',()=>{
 
 // ─── Login System ─────────────────────────────────────────────────────────────
 const CRED_KEY = 'finvault_credentials';
-function getCredentials(){try{const s=localStorage.getItem(CRED_KEY);if(s)return JSON.parse(s)}catch(e){}return{userId:'admin',password:'finvault123'}}
+function getCredentials(){try{const s=localStorage.getItem(CRED_KEY);if(s)return JSON.parse(s)}catch(e){}return{userId:'admin',password:'1234'}}
 function saveCredentials(){
   const currentPass=document.getElementById('creds-current-pass').value;
   const newUserId=document.getElementById('creds-new-userid').value.trim();
