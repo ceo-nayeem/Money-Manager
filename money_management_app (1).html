@@ -1,3 +1,6 @@
+bash
+
+cat > /mnt/user-data/outputs/money_management_app.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -754,11 +757,6 @@ window.addEventListener('load',()=>{
 });
   
 
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyA6yfB8x0tEbfkfMU1iy0l_QCDScM6Jc1c",
   authDomain: "money-manager-v01.firebaseapp.com",
@@ -767,9 +765,6 @@ const firebaseConfig = {
   messagingSenderId: "727186041987",
   appId: "1:727186041987:web:1813db6ba4bbc434fa3fb6"
 };
-
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
   
 </script>
 </body>
