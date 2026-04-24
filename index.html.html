@@ -65,7 +65,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .kpi-change{font-size:11px;margin-top:6px}
 .up{color:#10b981}.down{color:#ef4444}
 .kpi-icon{position:absolute;right:14px;top:14px;font-size:18px;opacity:0.12}
-.charts-row{display:grid;grid-template-columns:1fr 320px;gap:14px;margin-bottom:20px;height:auto}
+.charts-row{display:grid;grid-template-columns:1fr minmax(0,320px);gap:14px;margin-bottom:20px;height:auto}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);padding:18px}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px}
 .card-title{font-size:13px;font-weight:600;flex-shrink:0}
@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .legend-dot{width:7px;height:7px;border-radius:50%;margin-right:8px;flex-shrink:0}
 .legend-left{display:flex;align-items:center}
 .legend-pct{color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px}
-.bottom-row{display:grid;grid-template-columns:1fr 290px;gap:14px;margin-bottom:20px}
+.bottom-row{display:grid;grid-template-columns:1fr minmax(0,290px);gap:14px;margin-bottom:20px}
 .txn-list{display:flex;flex-direction:column;gap:2px}
 .txn-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background 0.15s}
 .txn-item:hover{background:var(--bg3)}
@@ -93,6 +93,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .txn-date{font-size:10px;color:var(--text3);margin-top:2px;text-align:right}
 .txn-delete{opacity:0;font-size:12px;cursor:pointer;color:var(--accent5);transition:opacity 0.15s;padding:2px 6px;border-radius:4px;background:none;border:none;font-family:'Sora',sans-serif}
 .txn-item:hover .txn-delete{opacity:1}
+@media(max-width:768px){.txn-delete{opacity:0.6}}
 .budget-items{display:flex;flex-direction:column;gap:12px}
 .budget-item{}
 .budget-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;align-items:center}
@@ -109,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .filter-group{display:flex;gap:8px;flex-wrap:wrap}
 .filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;outline:none;cursor:pointer}
 .txn-full-list{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);overflow:hidden}
-.txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);transition:background 0.15s}
+.txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);transition:background 0.15s;gap:8px;min-width:0}
 .txn-full-item:last-child{border-bottom:none}
 .txn-full-item:hover{background:var(--bg3)}
 .txn-summary-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
@@ -169,13 +170,90 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
-@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.goals-grid,.goals-page-grid{grid-template-columns:repeat(2,1fr)}.invest-grid{grid-template-columns:1fr}.portfolio-row{grid-template-columns:1fr}.reports-grid{grid-template-columns:1fr}}
-@media(max-width:900px){.charts-row{grid-template-columns:1fr}.bottom-row{grid-template-columns:1fr}.budget-page-grid{grid-template-columns:1fr}}
-@media(max-width:768px){:root{--sidebar-w:0px}.sidebar{transform:translateX(-240px);width:240px}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.hamburger{display:flex}.main{margin-left:0}.header{padding:14px 16px 14px 56px}.content{padding:16px}.kpi-grid{grid-template-columns:1fr 1fr}.goals-grid,.goals-page-grid{grid-template-columns:1fr 1fr}.modal{padding:20px}}
-@media(max-width:480px){.kpi-grid{grid-template-columns:1fr}.goals-grid,.goals-page-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.header-right .chip{display:none}.txn-summary-bar{flex-direction:column}.budget-page-grid{grid-template-columns:1fr}}
+@media(max-width:1100px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .goals-grid,.goals-page-grid{grid-template-columns:repeat(2,1fr)}
+  .invest-grid{grid-template-columns:1fr}
+  .portfolio-row{grid-template-columns:1fr}
+  .reports-grid{grid-template-columns:1fr}
+}
+@media(max-width:900px){
+  .charts-row{grid-template-columns:1fr}
+  .bottom-row{grid-template-columns:1fr}
+  .budget-page-grid{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  :root{--sidebar-w:0px}
+  .sidebar{transform:translateX(-240px);width:240px}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .hamburger{display:flex}
+  .main{margin-left:0}
+  .header{padding:14px 16px 14px 56px}
+  .content{padding:16px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .goals-grid,.goals-page-grid{grid-template-columns:1fr 1fr}
+  .modal{padding:20px}
+}
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .goals-grid,.goals-page-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .header-right .chip{display:none}
+  .txn-summary-bar{flex-direction:column}
+  .budget-page-grid{grid-template-columns:1fr}
+  .invest-grid{grid-template-columns:1fr}
+  .portfolio-row{grid-template-columns:1fr}
+  .reports-grid{grid-template-columns:1fr}
+  .goals-page-grid{grid-template-columns:1fr}
+  /* Header */
+  .header{padding:10px 12px 10px 52px;gap:8px}
+  .page-title{font-size:14px}
+  .page-sub{font-size:10px}
+  .btn{padding:7px 12px;font-size:11.5px}
+  /* KPI cards */
+  .kpi-card{padding:14px 12px}
+  .kpi-value{font-size:17px;letter-spacing:-0.5px}
+  .kpi-label{font-size:9.5px}
+  .kpi-change{font-size:10px}
+  .kpi-icon{font-size:15px;right:10px;top:10px}
+  /* Content padding */
+  .content{padding:12px}
+  /* Cards */
+  .card{padding:14px}
+  .card-title{font-size:12px}
+  /* Transactions */
+  .txn-name{font-size:12px}
+  .txn-cat{font-size:10px}
+  .txn-amount{font-size:12px}
+  /* Modal */
+  .modal{padding:18px;max-height:95vh;border-radius:12px}
+  .modal-title{font-size:14px;margin-bottom:14px}
+  /* Add Transaction button in header */
+  .header-right .btn-primary{font-size:11px;padding:7px 10px}
+  /* Filter group wrap */
+  .filter-group{gap:5px}
+  .filter-select{font-size:11px;padding:5px 8px}
+  /* Summary bar */
+  .txn-summary-item{padding:10px 12px}
+  .txn-summary-val{font-size:14px}
+  /* Goal page */
+  .goal-page-actions{gap:5px}
+  .goal-page-actions .btn{font-size:11px;padding:6px 8px}
+  /* Invest card */
+  .invest-amount{font-size:18px}
+  /* Login box */
+  .login-box{padding:28px 20px;margin:16px}
+  /* Category modal add row */
+  #modal-manage-cats .modal{max-width:100%}
+}
 
 .card canvas {
   height: 300px !important;
+}
+@media(max-width:480px){
+  .card canvas{height:200px !important}
+  .donut-wrap{width:130px;height:130px}
 }
 
 /* ── Login Screen ── */
@@ -523,10 +601,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <div style="border-top:1px solid var(--border);padding-top:14px">
       <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600">Add New</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input class="form-input" id="mcat-new-name" placeholder="Category name" style="flex:2;min-width:120px">
-        <input class="form-input" id="mcat-new-emoji" placeholder="Emoji" maxlength="2" style="width:60px;text-align:center" title="Emoji (not shown for Invest Types)">
+        <input class="form-input" id="mcat-new-name" placeholder="Category name" style="flex:2;min-width:140px">
+        <input class="form-input" id="mcat-new-emoji" placeholder="Emoji" maxlength="2" style="width:56px;text-align:center" title="Emoji (not shown for Invest Types)">
         <input class="form-input" type="color" id="mcat-new-color" value="#4f8ef7" style="width:46px;height:38px;padding:3px;cursor:pointer" title="Pick color">
-        <button class="btn btn-primary btn-sm" onclick="addCategory()" style="white-space:nowrap">+ Add</button>
+        <button class="btn btn-primary btn-sm" onclick="addCategory()" style="white-space:nowrap;flex-shrink:0">+ Add</button>
       </div>
     </div>
     <div class="modal-actions" style="margin-top:14px">
