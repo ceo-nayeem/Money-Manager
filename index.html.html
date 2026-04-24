@@ -178,9 +178,75 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
   height: 300px !important;
 }
 
+/* ── Login Screen ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 64px #00000080}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo-mark{font-size:26px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#4f8ef7,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.login-logo-sub{font-size:10px;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase;margin-top:4px}
+.login-title{font-size:17px;font-weight:700;margin-bottom:6px;text-align:center}
+.login-sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:24px}
+.login-error{background:#ef444418;border:1px solid #ef444430;color:#ef4444;border-radius:8px;padding:9px 13px;font-size:12px;margin-bottom:14px;display:none}
+.login-error.show{display:block}
+.login-btn{width:100%;padding:11px;border-radius:10px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Sora',sans-serif;transition:all 0.18s;margin-top:6px}
+.login-btn:hover{background:#3a7ce8;transform:translateY(-1px);box-shadow:0 4px 16px #4f8ef740}
+.login-footer{text-align:center;font-size:11px;color:var(--text3);margin-top:18px}
+
+/* ── Change Credentials Modal ── */
+.cred-hint{font-size:11px;color:var(--text2);margin-top:4px}
+
 </style>
 </head>
 <body>
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-mark">FinVault</div>
+      <div class="login-logo-sub">Money Manager</div>
+    </div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in to access your dashboard</div>
+    <div class="login-error" id="login-error">Invalid User ID or Password. Please try again.</div>
+    <div class="form-group"><label class="form-label">User ID</label><input class="form-input" type="text" id="login-userid" placeholder="Enter your user ID" autocomplete="username"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"></div>
+    <button class="login-btn" onclick="attemptLogin()">Sign In →</button>
+    <div class="login-footer">🔒 Private &amp; secure · Only you can access this</div>
+  </div>
+</div>
+
+<!-- ══════════ CHANGE CREDENTIALS MODAL ══════════ -->
+<div class="modal-overlay" id="modal-change-creds">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('change-creds')">✕</button>
+    <div class="modal-title">🔐 Change Login Credentials</div>
+    <div class="form-group">
+      <label class="form-label">Current Password</label>
+      <input class="form-input" type="password" id="creds-current-pass" placeholder="Enter current password">
+    </div>
+    <div style="border-top:1px solid var(--border);margin:16px 0"></div>
+    <div class="form-group">
+      <label class="form-label">New User ID</label>
+      <input class="form-input" type="text" id="creds-new-userid" placeholder="New user ID">
+      <div class="cred-hint">Leave blank to keep current User ID</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" type="password" id="creds-new-pass" placeholder="New password">
+      <div class="cred-hint">Leave blank to keep current password</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm New Password</label>
+      <input class="form-input" type="password" id="creds-confirm-pass" placeholder="Re-enter new password">
+    </div>
+    <div class="login-error" id="creds-error" style="margin-top:0"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('change-creds')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveCredentials()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <button class="hamburger" onclick="toggleSidebar()" id="hamburger">
   <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
 </button>
@@ -225,6 +291,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
           <div class="user-name" id="user-name-display">Arif Rahman</div>
           <div class="user-plan">Pro Plan · Click to edit</div>
         </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px" onclick="openModal('change-creds')">🔐 Credentials</button>
+        <button class="btn btn-danger btn-sm" style="flex:1;font-size:11px" onclick="logout()">🚪 Logout</button>
       </div>
     </div>
   </aside>
@@ -752,14 +822,101 @@ function renderAll(){
   if(active&&active.id!=='page-dashboard')renderPageContent(active.id.replace('page-',''));
 }
 window.addEventListener('load',()=>{
-  const n=DATA.profile.name;
-  document.getElementById('user-name-display').textContent=n;
-  document.getElementById('user-avatar').textContent=n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  renderAll();
+  // Show login screen first; renderAll called after login
+  checkAutoLogin();
 });
-  
 
-// ─── Firebase Integration ───────────────────────────────────────────────────
+// ─── Login System ────────────────────────────────────────────────────────────
+
+const CRED_KEY = 'finvault_credentials';
+
+function getCredentials(){
+  try{
+    const saved = localStorage.getItem(CRED_KEY);
+    if(saved) return JSON.parse(saved);
+  }catch(e){}
+  // Default credentials — change these to whatever you want
+  return { userId: 'admin', password: 'finvault123' };
+}
+
+function saveCredentials(){
+  const currentPass = document.getElementById('creds-current-pass').value;
+  const newUserId   = document.getElementById('creds-new-userid').value.trim();
+  const newPass     = document.getElementById('creds-new-pass').value;
+  const confirmPass = document.getElementById('creds-confirm-pass').value;
+  const errEl       = document.getElementById('creds-error');
+  errEl.classList.remove('show');
+
+  const creds = getCredentials();
+  if(currentPass !== creds.password){
+    errEl.textContent = 'Current password is incorrect.';
+    errEl.classList.add('show'); return;
+  }
+  if(newPass && newPass !== confirmPass){
+    errEl.textContent = 'New passwords do not match.';
+    errEl.classList.add('show'); return;
+  }
+  const updated = {
+    userId:   newUserId   || creds.userId,
+    password: newPass     || creds.password
+  };
+  localStorage.setItem(CRED_KEY, JSON.stringify(updated));
+  closeModal('change-creds');
+  document.getElementById('creds-current-pass').value='';
+  document.getElementById('creds-new-userid').value='';
+  document.getElementById('creds-new-pass').value='';
+  document.getElementById('creds-confirm-pass').value='';
+  toast('✅ Credentials updated successfully!', 'success');
+}
+
+function attemptLogin(){
+  const userId   = document.getElementById('login-userid').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const creds    = getCredentials();
+
+  if(userId === creds.userId && password === creds.password){
+    errEl.classList.remove('show');
+    // Mark session
+    sessionStorage.setItem('finvault_logged_in', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    // Now initialise the app
+    const n = DATA.profile.name;
+    document.getElementById('user-name-display').textContent = n;
+    document.getElementById('user-avatar').textContent = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    renderAll();
+  } else {
+    errEl.classList.add('show');
+    document.getElementById('login-password').value = '';
+  }
+}
+
+function checkAutoLogin(){
+  // If already logged in this session, skip login screen
+  if(sessionStorage.getItem('finvault_logged_in') === '1'){
+    document.getElementById('login-screen').style.display = 'none';
+    const n = DATA.profile.name;
+    document.getElementById('user-name-display').textContent = n;
+    document.getElementById('user-avatar').textContent = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    renderAll();
+  }
+  // else login screen stays visible (it's shown by default)
+  // Allow Enter key on login form
+  document.getElementById('login-password').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+  document.getElementById('login-userid').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+}
+
+function logout(){
+  sessionStorage.removeItem('finvault_logged_in');
+  document.getElementById('login-userid').value='';
+  document.getElementById('login-password').value='';
+  document.getElementById('login-error').classList.remove('show');
+  document.getElementById('login-screen').style.display='flex';
+  // Close sidebar on mobile
+  closeSidebar&&closeSidebar();
+}
+
+
 // We use Firebase Firestore to persist data across devices.
 // The app also falls back to localStorage if Firebase is unavailable.
 
