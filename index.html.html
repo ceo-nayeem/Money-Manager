@@ -491,11 +491,20 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <div class="form-group"><label class="form-label">Type</label>
       <div class="type-toggle"><button class="type-btn active expense" id="type-expense" onclick="setType('expense')">💸 Expense</button><button class="type-btn income" id="type-income" onclick="setType('income')">💰 Income</button></div>
     </div>
+    
     <div class="form-row">
       <div class="form-group"><label class="form-label">Amount (৳)</label><input class="form-input" type="number" id="txn-amount" placeholder="0" min="0"></div>
       <div class="form-group"><label class="form-label">Category</label><select class="form-input" id="txn-cat"></select></div>
     </div>
-    <div class="form-group"><label class="form-label">Description</label><input class="form-input" type="text" id="txn-desc" placeholder="e.g. Lunch at restaurant"></div>
+    
+    <div style="text-align:center; margin: 10px 0; font-size: 10.5px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">— OR SMART SPLIT (NLP) —</div>
+    <div class="form-group">
+      <label class="form-label">Smart Entry</label>
+      <input class="form-input" type="text" id="txn-smart" placeholder="e.g. 200 Food, 50 Transport">
+      <div style="font-size:10px;color:var(--text2);margin-top:4px">Type multiple expenses separated by commas. Leave blank to use normal amount.</div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Description / Note</label><input class="form-input" type="text" id="txn-desc" placeholder="e.g. Lunch at restaurant"></div>
     <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="txn-date"></div>
     <input type="hidden" id="txn-edit-id">
     <div class="modal-actions">
@@ -694,6 +703,7 @@ function prepTxnModal(data){
   document.getElementById('txn-amount').value=data?data.amount:'';
   document.getElementById('txn-desc').value=data?data.desc:'';
   document.getElementById('txn-date').value=data?data.date:today();
+  document.getElementById('txn-smart').value=''; // Reset smart input
   populateCatSelect('txn-cat',txnType==='income'?getIncomeCats():getExpenseCats(),data?data.cat:null);
 }
 function setType(t){
@@ -704,18 +714,87 @@ function setType(t){
 }
 function populateCatSelect(id,cats,selected=null){
   document.getElementById(id).innerHTML=cats.map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
-}
-function saveTransaction(){
+}function saveTransaction(){
+  const smartText = document.getElementById('txn-smart').value.trim();
+  const desc = document.getElementById('txn-desc').value.trim();
+  const date = document.getElementById('txn-date').value;
+  const type = txnType;
+  const editId = editTxnId;
+
+  if(!date){toast('Please select a date','error');return}
+
+  // --- 1. SMART SPLIT / NLP LOGIC ---
+  if(smartText !== '') {
+    // Comma (,) বা and দিয়ে বাক্যটিকে আলাদা করবে
+    const chunks = smartText.split(/,|and|\+/i); 
+    let addedCount = 0;
+
+    chunks.forEach((chunk, i) => {
+      const cleanChunk = chunk.trim().toLowerCase();
+      if(!cleanChunk) return;
+
+      // বাক্য থেকে নাম্বার (Amount) বের করা
+      const amountMatch = cleanChunk.match(/(\d+(\.\d+)?)/);
+      if(!amountMatch) return;
+      const amount = parseFloat(amountMatch[0]);
+
+      // নাম্বার সরিয়ে বাক্যের বাকি অংশ (Text/Category) বের করা
+      const textPart = cleanChunk.replace(amountMatch[0], '').trim();
+
+      const availableCats = type === 'income' ? getIncomeCats() : getExpenseCats();
+      let matchedCat = availableCats[0]; // Default category
+
+      // টেক্সটের সাথে আপনার সেভ করা ক্যাটেগরির নাম মেলানোর চেষ্টা
+      for(let cat of availableCats) {
+         const catLower = cat.toLowerCase();
+         // 'for', 'in', 'on' ইত্যাদি শব্দ বাদ দিয়ে মূল শব্দ খোঁজা
+         const cleanText = textPart.replace(/\b(for|in|on|at)\b/gi, '').trim(); 
+         if(cleanText.includes(catLower) || (catLower.includes(cleanText) && cleanText.length > 2)) {
+             matchedCat = cat;
+             break;
+         }
+      }
+
+      const txn = {
+        id: uid() + i, // Unique ID for each split
+        type: type,
+        amount: amount,
+        cat: matchedCat,
+        desc: desc || `${matchedCat} (Smart Split)`,
+        date: date,
+        emoji: getCatEmoji(matchedCat)
+      };
+      DATA.transactions.unshift(txn);
+      addedCount++;
+    });
+
+    if(addedCount > 0) {
+        toast(`${addedCount} split transactions added ✓`);
+        saveData(); closeModal('add-txn'); renderAll();
+        return;
+    } else {
+        toast('Could not understand smart format','error');
+        return;
+    }
+  }
+
+  // --- 2. NORMAL LOGIC (যদি স্মার্ট ইনপুট ফাঁকা থাকে) ---
   const amount=parseFloat(document.getElementById('txn-amount').value);
   const cat=document.getElementById('txn-cat').value;
-  const desc=document.getElementById('txn-desc').value.trim()||cat;
-  const date=document.getElementById('txn-date').value;
+  const finalDesc = desc || cat;
+
   if(!amount||amount<=0){toast('Please enter a valid amount','error');return}
-  if(!date){toast('Please select a date','error');return}
-  const id=editTxnId;
-  const txn={id:id||uid(),type:txnType,amount,cat,desc,date,emoji:getCatEmoji(cat)};
-  if(id){const idx=DATA.transactions.findIndex(t=>t.id==id);if(idx!==-1)DATA.transactions[idx]=txn;toast('Transaction updated ✓')}
-  else{DATA.transactions.unshift(txn);toast('Transaction added ✓')}
+
+  const txn={id:editId||uid(),type,amount,cat,desc:finalDesc,date,emoji:getCatEmoji(cat)};
+  
+  if(editId){
+    const idx=DATA.transactions.findIndex(t=>t.id==editId);
+    if(idx!==-1)DATA.transactions[idx]=txn;
+    toast('Transaction updated ✓');
+  } else {
+    DATA.transactions.unshift(txn);
+    toast('Transaction added ✓');
+  }
   saveData();closeModal('add-txn');renderAll();
 }
 function deleteTxn(id){if(!confirm('Delete this transaction?'))return;DATA.transactions=DATA.transactions.filter(t=>t.id!=id);saveData();renderAll();toast('Deleted','info')}
