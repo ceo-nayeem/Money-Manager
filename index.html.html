@@ -956,7 +956,14 @@ function renderKPI(){
   const c2=document.getElementById('header-chip2');
   if(c2)c2.textContent=overCount?'🚨 '+overCount+' over budget':'✅ Budgets OK';
 }
-function renderTxns() {
+
+  function renderDashTxnList(){
+  const el=document.getElementById('dash-txn-list');if(!el)return;
+  const recent=[...DATA.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
+  el.innerHTML=recent.length?recent.map(t=>`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${t.type==='income'?'#10b981':'#ef4444'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
+}
+  
+  function renderTxns() {
   const list = document.getElementById('txn-list');
   list.innerHTML = '';
   const filtered = filterTxns(); // আপনার আগের ফিল্টার লজিক
