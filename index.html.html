@@ -496,6 +496,13 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <div class="form-group"><label class="form-label">Amount (৳)</label><input class="form-input" type="number" id="txn-amount" placeholder="0" min="0"></div>
       <div class="form-group"><label class="form-label">Category</label><select class="form-input" id="txn-cat"></select></div>
     </div>
+
+    <div id="split-section" style="display:none; margin-top: 15px; border-top: 1px dashed var(--border2); padding-top: 15px;">
+  <div style="font-size: 11px; color: var(--text3); font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">Sub-Transactions</div>
+  <div id="split-items-container"></div>
+  <button type="button" class="btn btn-ghost" style="width:100%; font-size:12px; margin-top:5px;" onclick="addSplitRow()">+ Add Sub-Item</button>
+</div>
+<button type="button" id="btn-toggle-split" class="btn btn-ghost" style="width:100%; margin-top:10px; border: 1px solid var(--border2);" onclick="toggleSplitSection()">Split This Transaction</button>
     
     <div style="text-align:center; margin: 10px 0; font-size: 10.5px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">— OR SMART SPLIT (NLP) —</div>
     <div class="form-group">
@@ -949,10 +956,66 @@ function renderKPI(){
   const c2=document.getElementById('header-chip2');
   if(c2)c2.textContent=overCount?'🚨 '+overCount+' over budget':'✅ Budgets OK';
 }
-function renderDashTxnList(){
-  const el=document.getElementById('dash-txn-list');if(!el)return;
-  const recent=[...DATA.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
-  el.innerHTML=recent.length?recent.map(t=>`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${t.type==='income'?'#10b981':'#ef4444'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
+function renderTxns() {
+  const list = document.getElementById('txn-list');
+  list.innerHTML = '';
+  const filtered = filterTxns(); // আপনার আগের ফিল্টার লজিক
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state">No transactions found</div>`;
+    return;
+  }
+
+  filtered.forEach(t => {
+    // চেক করা হচ্ছে যে এই ট্রানজ্যাকশনে কোনো সাব-টাস্ক (Splits) আছে কি না
+    const hasSplits = t.splits && t.splits.length > 0;
+    
+    const div = document.createElement('div');
+    div.className = 'txn-card-wrapper'; // এটি নতুন যোগ করা হয়েছে
+
+    let itemHtml = `
+      <div class="txn-item" onclick="${hasSplits ? `toggleSubItems('${t.id}')` : ''}" style="cursor:${hasSplits ? 'pointer' : 'default'}">
+        <div class="txn-info">
+          <div class="txn-icon">${t.emoji}</div>
+          <div>
+            <div class="txn-desc">
+                ${t.desc} 
+                ${hasSplits ? '<span style="font-size:10px; color:var(--accent); margin-left:5px;">▼</span>' : ''}
+            </div>
+            <div class="txn-meta">${t.cat} • ${t.date}</div>
+          </div>
+        </div>
+        <div class="txn-amount ${t.type}">${t.type === 'expense' ? '-' : '+'}৳${t.amount}</div>
+      </div>
+    `;
+
+    // যদি সাব-টাস্ক থাকে, তবে সেগুলো এখানে তৈরি হবে (Sub-task style)
+    if (hasSplits) {
+      itemHtml += `
+        <div id="sub-list-${t.id}" style="display:none; margin-left:45px; border-left: 2px solid var(--border2); padding-left: 15px; margin-bottom: 15px; margin-top: -5px;">
+      `;
+      t.splits.forEach(s => {
+        itemHtml += `
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text2); padding: 8px 0; border-bottom: 1px solid var(--border1);">
+            <span>${s.emoji} ${s.cat}</span>
+            <span style="color:var(--text)">৳${s.amount}</span>
+          </div>`;
+      });
+      itemHtml += `</div>`;
+    }
+
+    div.innerHTML = itemHtml;
+    list.appendChild(div);
+  });
+}
+
+// এই ফাংশনটি স্ক্রিপ্ট ট্যাগের যেকোনো জায়গায় (যেমন একদম নিচে) পেস্ট করে দিলেই হবে
+function toggleSubItems(id) {
+  const el = document.getElementById('sub-list-' + id);
+  if (el) {
+    const isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'block' : 'none';
+  }
 }
 function renderDashBudgets(){
   const el=document.getElementById('dash-budget-items');if(!el)return;
@@ -1286,6 +1349,57 @@ window.saveData = async function() {
 window.addEventListener('load', () => {
   initFirebase();
 });
+
+/* open */
+  let isSplitMode = false;
+function toggleSplitSection() {
+    isSplitMode = !isSplitMode;
+    const section = document.getElementById('split-section');
+    const btn = document.getElementById('btn-toggle-split');
+    const mainAmount = document.getElementById('txn-amount');
+    const mainCat = document.getElementById('txn-cat');
+
+    if (isSplitMode) {
+        section.style.display = 'block';
+        btn.textContent = 'Switch to Single Entry';
+        mainAmount.disabled = true; // Sub-item thakle main amount auto calculate hobe
+        mainAmount.placeholder = "Auto-calculated";
+        if (document.getElementById('split-items-container').children.length === 0) addSplitRow();
+    } else {
+        section.style.display = 'none';
+        btn.textContent = 'Split This Transaction';
+        mainAmount.disabled = false;
+        mainAmount.placeholder = "0";
+    }
+}
+
+function addSplitRow() {
+    const container = document.getElementById('split-items-container');
+    const rowId = 'row-' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'form-row';
+    div.id = rowId;
+    div.style.marginBottom = '8px';
+    
+    const cats = txnType === 'income' ? getIncomeCats() : getExpenseCats();
+    let catOptions = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    div.innerHTML = `
+        <div class="form-group" style="flex:2"><input class="form-input split-amt" type="number" placeholder="Amt" oninput="calcTotalFromSplits()"></div>
+        <div class="form-group" style="flex:3"><select class="form-input split-cat">${catOptions}</select></div>
+        <button class="btn" style="color:var(--accent5); padding:0 10px;" onclick="document.getElementById('${rowId}').remove(); calcTotalFromSplits();">✕</button>
+    `;
+    container.appendChild(div);
+}
+
+function calcTotalFromSplits() {
+    let total = 0;
+    document.querySelectorAll('.split-amt').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    document.getElementById('txn-amount').value = total;
+}
+  /* close */
 </script>
 </body>
 </html>
