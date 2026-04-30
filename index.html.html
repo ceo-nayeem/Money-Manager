@@ -52,7 +52,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .content{padding:24px 28px;flex:1}
 .page{display:none}
 .page.active{display:block}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px}
 .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);padding:18px;position:relative;overflow:hidden;transition:all 0.2s}
 .kpi-card:hover{border-color:var(--border2);transform:translateY(-2px)}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
@@ -155,6 +155,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .type-btn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s}
 .type-btn.active.income{background:#10b98118;border-color:#10b981;color:#10b981}
 .type-btn.active.expense{background:#ef444418;border-color:#ef4444;color:#ef4444}
+.type-btn.active.liability{background:#f59e0b18;border-color:#f59e0b;color:#f59e0b}
+.type-btn.active.receivable{background:#06b6d418;border-color:#06b6d4;color:#06b6d4}
+.kpi-card.orange::before{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
+.kpi-card.cyan::before{background:linear-gradient(90deg,#06b6d4,#67e8f9)}
 .modal-close{position:absolute;top:14px;right:14px;background:var(--bg4);border:none;color:var(--text2);font-size:14px;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
 .modal-close:hover{color:var(--text)}
 .modal-actions{display:flex;gap:8px;margin-top:18px}
@@ -171,7 +175,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
 @media(max-width:1100px){
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .kpi-grid{grid-template-columns:repeat(3,1fr)}
   .goals-grid,.goals-page-grid{grid-template-columns:repeat(2,1fr)}
   .invest-grid{grid-template-columns:1fr}
   .portfolio-row{grid-template-columns:1fr}
@@ -191,7 +195,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
   .main{margin-left:0}
   .header{padding:14px 16px 14px 56px}
   .content{padding:16px}
-  .kpi-grid{grid-template-columns:1fr 1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .goals-grid,.goals-page-grid{grid-template-columns:1fr 1fr}
   .modal{padding:20px}
 }
@@ -454,6 +458,8 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
           <div class="kpi-card green"><div class="kpi-label">Monthly Income</div><div class="kpi-value" id="kpi-income">৳0</div><div class="kpi-change up">▲ This month</div><div class="kpi-icon">📥</div></div>
           <div class="kpi-card amber"><div class="kpi-label">Monthly Expenses</div><div class="kpi-value" id="kpi-expense">৳0</div><div class="kpi-change" id="kpi-expense-ch">This month</div><div class="kpi-icon">📤</div></div>
           <div class="kpi-card purple"><div class="kpi-label">Net Savings</div><div class="kpi-value" id="kpi-savings">৳0</div><div class="kpi-change" id="kpi-savings-ch">Savings rate</div><div class="kpi-icon">🏦</div></div>
+          <div class="kpi-card orange"><div class="kpi-label">Total Liability (ঋণ)</div><div class="kpi-value" id="kpi-liability">৳0</div><div class="kpi-change down" id="kpi-liability-ch">পরিশোধযোগ্য</div><div class="kpi-icon">🔴</div></div>
+          <div class="kpi-card cyan"><div class="kpi-label">Total Receivable (পাওনা)</div><div class="kpi-value" id="kpi-receivable">৳0</div><div class="kpi-change up" id="kpi-receivable-ch">আদায়যোগ্য</div><div class="kpi-icon">🔵</div></div>
         </div>
         <div class="charts-row">
           <div class="card">
@@ -488,7 +494,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
         <div class="txn-summary-bar" id="txn-summary-bar"></div>
         <div class="txn-page-header">
           <div class="filter-group">
-            <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option></select>
+            <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="liability">Liability</option><option value="receivable">Receivable</option></select>
             <select class="filter-select" id="filter-cat" onchange="renderTransactionsPage()"><option value="all">All Categories</option></select>
             <select class="filter-select" id="filter-sort" onchange="renderTransactionsPage()"><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
           </div>
@@ -554,7 +560,12 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <button class="modal-close" onclick="closeModal('add-txn')">✕</button>
     <div class="modal-title" id="txn-modal-title">Add Transaction</div>
     <div class="form-group"><label class="form-label">Type</label>
-      <div class="type-toggle"><button class="type-btn active expense" id="type-expense" onclick="setType('expense')">💸 Expense</button><button class="type-btn income" id="type-income" onclick="setType('income')">💰 Income</button></div>
+      <div class="type-toggle" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="type-btn active expense" id="type-expense" onclick="setType('expense')">💸 Expense</button>
+        <button class="type-btn income" id="type-income" onclick="setType('income')">💰 Income</button>
+        <button class="type-btn liability" id="type-liability" onclick="setType('liability')">🔴 Liability (ঋণ নেওয়া)</button>
+        <button class="type-btn receivable" id="type-receivable" onclick="setType('receivable')">🔵 Receivable (ধার দেওয়া)</button>
+      </div>
     </div>
     
     <div class="form-row">
@@ -824,13 +835,17 @@ function prepTxnModal(data){
   document.getElementById('txn-desc').value=data?data.desc:'';
   document.getElementById('txn-date').value=data?data.date:today();
   document.getElementById('txn-smart').value=''; // Reset smart input
-  populateCatSelect('txn-cat',txnType==='income'?getIncomeCats():getExpenseCats(),data?data.cat:null);
+  const cats=(txnType==='income')?getIncomeCats():(txnType==='liability'||txnType==='receivable')?[...getExpenseCats(),...getIncomeCats()]:getExpenseCats();
+  populateCatSelect('txn-cat',cats,data?data.cat:null);
 }
 function setType(t){
   txnType=t;
-  populateCatSelect('txn-cat',t==='income'?getIncomeCats():getExpenseCats());
-  document.getElementById('type-expense').className='type-btn'+(t==='expense'?' active expense':'');
-  document.getElementById('type-income').className='type-btn'+(t==='income'?' active income':'');
+  const cats = (t==='income')?getIncomeCats():(t==='liability'||t==='receivable')?[...getExpenseCats(),...getIncomeCats()]:getExpenseCats();
+  populateCatSelect('txn-cat', cats);
+  ['expense','income','liability','receivable'].forEach(type=>{
+    const btn=document.getElementById('type-'+type);
+    if(btn) btn.className='type-btn'+(t===type?' active '+type:'');
+  });
 }
 function populateCatSelect(id,cats,selected=null){
   document.getElementById(id).innerHTML=cats.map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
@@ -1026,7 +1041,13 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 function calcStats(){
   const income=DATA.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=DATA.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  return{income,expense,balance:DATA.profile.openingBalance+income-expense,savings:income-expense};
+  // Liability = ঋণ নেওয়া → balance বাড়ে (cash পাওয়া গেছে, কিন্তু ফেরত দিতে হবে)
+  const liability=DATA.transactions.filter(t=>t.type==='liability').reduce((s,t)=>s+t.amount,0);
+  // Receivable = ধার দেওয়া → balance কমে (cash চলে গেছে, ফেরত পাওয়া যাবে)
+  const receivable=DATA.transactions.filter(t=>t.type==='receivable').reduce((s,t)=>s+t.amount,0);
+  const balance=DATA.profile.openingBalance+income-expense+liability-receivable;
+  const savings=income-expense;
+  return{income,expense,balance,savings,liability,receivable};
 }
 let flowChart,donutChart,portfolioChart,reportBarChart,reportLineChart;
 function buildFlowChart(period='6M'){
@@ -1052,11 +1073,20 @@ function buildDonutChart(){
 }
 function switchFlowChart(el,period){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');buildFlowChart(period)}
 function renderKPI(){
-  const{income,expense,balance,savings}=calcStats();
+  const{income,expense,balance,savings,liability,receivable}=calcStats();
   document.getElementById('kpi-balance').textContent=fmtFull(balance);
   document.getElementById('kpi-income').textContent=fmt(income);
   document.getElementById('kpi-expense').textContent=fmt(expense);
   document.getElementById('kpi-savings').textContent=fmtFull(savings);
+  // Liability & Receivable KPI
+  const liabEl=document.getElementById('kpi-liability');
+  if(liabEl)liabEl.textContent=fmt(liability);
+  const recvEl=document.getElementById('kpi-receivable');
+  if(recvEl)recvEl.textContent=fmt(receivable);
+  const liabChEl=document.getElementById('kpi-liability-ch');
+  if(liabChEl)liabChEl.textContent=DATA.transactions.filter(t=>t.type==='liability').length+' টি ঋণ';
+  const recvChEl=document.getElementById('kpi-receivable-ch');
+  if(recvChEl)recvChEl.textContent=DATA.transactions.filter(t=>t.type==='receivable').length+' টি পাওনা';
   const rate=income>0?Math.round((savings/income)*100):0;
   const pct=income>0?Math.round((expense/income)*100):0;
   const sEl=document.getElementById('kpi-savings-ch');
@@ -1073,7 +1103,11 @@ function renderKPI(){
   function renderDashTxnList(){
   const el=document.getElementById('dash-txn-list');if(!el)return;
   const recent=[...DATA.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
-  el.innerHTML=recent.length?recent.map(t=>`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${t.type==='income'?'#10b981':'#ef4444'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
+  el.innerHTML=recent.length?recent.map(t=>{
+    const color=t.type==='income'?'#10b981':t.type==='liability'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
+    const sign=t.type==='income'?'+':t.type==='liability'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
+    return`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
+  }).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
 }
   
   function renderTxns() {
@@ -1148,9 +1182,9 @@ function renderDashGoals(){
   el.innerHTML=DATA.goals.map(g=>{const pct=Math.min(Math.round((g.saved/g.target)*100),100);return`<div class="goal-card"><div style="font-size:20px;margin-bottom:8px">${g.emoji}</div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${g.name}</div><div style="font-size:10.5px;color:var(--text2);margin-bottom:10px">Target: ${fmt(g.target)}</div><div style="font-size:18px;font-weight:700;font-family:JetBrains Mono;color:${g.color};margin-bottom:5px">${pct}%</div><div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="font-size:10.5px;color:var(--text2)">${fmt(g.saved)} saved</div></div>`}).join('');
 }
 function renderTransactionsPage(){
-  const{income,expense,savings}=calcStats();
+  const{income,expense,savings,liability,receivable}=calcStats();
   const sb=document.getElementById('txn-summary-bar');
-  if(sb)sb.innerHTML=`<div class="txn-summary-item"><div class="txn-summary-label">Total Income</div><div class="txn-summary-val up">${fmt(income)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Total Expenses</div><div class="txn-summary-val down">${fmt(expense)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Net</div><div class="txn-summary-val ${savings>=0?'up':'down'}">${fmtFull(savings)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Count</div><div class="txn-summary-val">${DATA.transactions.length}</div></div>`;
+  if(sb)sb.innerHTML=`<div class="txn-summary-item"><div class="txn-summary-label">Total Income</div><div class="txn-summary-val up">${fmt(income)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Total Expenses</div><div class="txn-summary-val down">${fmt(expense)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔴 Liability (ঋণ)</div><div class="txn-summary-val" style="color:#f59e0b">${fmt(liability)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔵 Receivable (পাওনা)</div><div class="txn-summary-val" style="color:#06b6d4">${fmt(receivable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Net</div><div class="txn-summary-val ${savings>=0?'up':'down'}">${fmtFull(savings)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Count</div><div class="txn-summary-val">${DATA.transactions.length}</div></div>`;
   const catSel=document.getElementById('filter-cat');
   const allCats=[...new Set(DATA.transactions.map(t=>t.cat))];
   const curCat=catSel.value;
@@ -1163,7 +1197,11 @@ function renderTransactionsPage(){
   if(catF!=='all')txns=txns.filter(t=>t.cat===catF);
   txns.sort((a,b)=>sortF==='date-desc'?new Date(b.date)-new Date(a.date):sortF==='date-asc'?new Date(a.date)-new Date(b.date):sortF==='amount-desc'?b.amount-a.amount:a.amount-b.amount);
   const el=document.getElementById('txn-full-list');if(!el)return;
-  el.innerHTML=txns.length?txns.map(t=>`<div class="txn-full-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="txn-amount" style="color:${t.type==='income'?'#10b981':'#ef4444'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div><div class="txn-date">${t.type}</div></div><button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>`).join(''):
+  el.innerHTML=txns.length?txns.map(t=>{
+    const color=t.type==='income'?'#10b981':t.type==='liability'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
+    const sign=t.type==='income'?'+':t.type==='liability'?'🔴':t.type==='receivable'?'🔵':'-';
+    const label=t.type==='liability'?'Liability':t.type==='receivable'?'Receivable':t.type;
+    return`<div class="txn-full-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div><button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>`}).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
 }
 function renderBudgetsPage(){
@@ -1472,8 +1510,12 @@ function doTransfer(){
 }
 function renderAll(){
   renderKPI();renderDashTxnList();renderDashBudgets();renderDashGoals();buildFlowChart();buildDonutChart();
+  // Real-time sync: সব active page re-render করা
   const active=document.querySelector('.page.active');
-  if(active&&active.id!=='page-dashboard')renderPageContent(active.id.replace('page-',''));
+  if(active){
+    const pageId=active.id.replace('page-','');
+    if(pageId!=='dashboard') renderPageContent(pageId);
+  }
 }
 window.addEventListener('load',()=>{
   checkAutoLogin();
