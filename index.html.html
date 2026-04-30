@@ -570,15 +570,22 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     
     <div class="form-row">
       <div class="form-group"><label class="form-label">Amount (৳)</label><input class="form-input" type="number" id="txn-amount" placeholder="0" min="0"></div>
-      <div class="form-group"><label class="form-label">Category</label><select class="form-input" id="txn-cat"></select></div>
+      <div class="form-group" id="cat-group-expense" style="display:block"><label class="form-label" id="cat-label">💸 Expense Category</label><select class="form-input" id="txn-cat-expense"></select></div>
+      <div class="form-group" id="cat-group-income" style="display:none"><label class="form-label">💰 Income Category</label><select class="form-input" id="txn-cat-income"></select></div>
+    </div>
+
+    <!-- Liability / Receivable extra fields -->
+    <div id="lr-fields" style="display:none">
+      <div class="form-group"><label class="form-label" id="lr-person-label">👤 যার কাছ থেকে ঋণ নিয়েছেন</label><input class="form-input" type="text" id="txn-person" placeholder="নাম লিখুন (যেমন: রাহিম ভাই)"></div>
+      <div class="form-group"><label class="form-label">🏦 কোন Account-এ জমা/কাটা হবে?</label><select class="form-input" id="txn-lr-account"></select></div>
     </div>
 
     <div id="split-section" style="display:none; margin-top: 15px; border-top: 1px dashed var(--border2); padding-top: 15px;">
-  <div style="font-size: 11px; color: var(--text3); font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">Sub-Transactions</div>
-  <div id="split-items-container"></div>
-  <button type="button" class="btn btn-ghost" style="width:100%; font-size:12px; margin-top:5px;" onclick="addSplitRow()">+ Add Sub-Item</button>
-</div>
-<button type="button" id="btn-toggle-split" class="btn btn-ghost" style="width:100%; margin-top:10px; border: 1px solid var(--border2);" onclick="toggleSplitSection()">Split This Transaction</button>
+      <div style="font-size: 11px; color: var(--text3); font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">Sub-Transactions</div>
+      <div id="split-items-container"></div>
+      <button type="button" class="btn btn-ghost" style="width:100%; font-size:12px; margin-top:5px;" onclick="addSplitRow()">+ Add Sub-Item</button>
+    </div>
+    <button type="button" id="btn-toggle-split" class="btn btn-ghost" style="width:100%; margin-top:10px; border: 1px solid var(--border2);" onclick="toggleSplitSection()">Split This Transaction</button>
     
     <div style="text-align:center; margin: 10px 0; font-size: 10.5px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">— OR SMART SPLIT (NLP) —</div>
     <div class="form-group">
@@ -752,6 +759,37 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     </div>
   </div>
 </div>
+<!-- PAY OFF / PAY BACK MODAL -->
+<div class="modal-overlay" id="modal-payoff">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('payoff')">✕</button>
+    <div class="modal-title" id="payoff-title">💳 Pay Back / Pay Off</div>
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px" id="payoff-type-label">Type</div>
+      <div style="font-size:14px;font-weight:700" id="payoff-person-display">-</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">মূল পরিমাণ: <span id="payoff-original-amount" style="font-family:JetBrains Mono;color:var(--text);font-weight:600">৳0</span></div>
+      <div style="font-size:12px;color:var(--text2)">বাকি আছে: <span id="payoff-remaining" style="font-family:JetBrains Mono;font-weight:700"></span></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">পরিশোধের পরিমাণ (৳)</label>
+      <input class="form-input" type="number" id="payoff-amount" placeholder="0" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="payoff-account-label">🏦 কোন Account থেকে পরিশোধ হবে?</label>
+      <select class="form-input" id="payoff-account"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" type="date" id="payoff-date">
+    </div>
+    <input type="hidden" id="payoff-txn-id">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('payoff')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="payoff-btn" onclick="doPayoff()">✅ Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -819,6 +857,7 @@ function openModal(id,data=null){
   else if(id==='profile')prepProfileModal();
   else if(id==='manage-cats')prepManageCats();
   else if(id==='transfer')openTransferModal();
+  else if(id==='payoff')prepPayoffModal(data);
   document.getElementById('modal-'+id).classList.add('open');
 }
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
@@ -830,25 +869,63 @@ function prepTxnModal(data){
   document.getElementById('txn-modal-title').textContent=data?'Edit Transaction':'Add Transaction';
   document.getElementById('txn-edit-id').value=data?data.id:'';
   txnType=data?data.type:'expense';
-  setType(txnType);
+  setType(txnType); // This populates cats and shows/hides fields
   document.getElementById('txn-amount').value=data?data.amount:'';
   document.getElementById('txn-desc').value=data?data.desc:'';
   document.getElementById('txn-date').value=data?data.date:today();
-  document.getElementById('txn-smart').value=''; // Reset smart input
-  const cats=(txnType==='income')?getIncomeCats():(txnType==='liability'||txnType==='receivable')?[...getExpenseCats(),...getIncomeCats()]:getExpenseCats();
-  populateCatSelect('txn-cat',cats,data?data.cat:null);
+  document.getElementById('txn-smart').value='';
+  // Set selected category
+  if(txnType==='income'){
+    populateCatSelect('txn-cat-income', getIncomeCats(), data?data.cat:null);
+  } else {
+    populateCatSelect('txn-cat-expense', getExpenseCats(), data?data.cat:null);
+  }
+  // Liability/Receivable specific
+  const isLR=(txnType==='liability'||txnType==='receivable');
+  if(isLR){
+    document.getElementById('txn-person').value=data?data.person||'':'';
+    ensureAccounts();
+    const accSel=document.getElementById('txn-lr-account');
+    if(accSel){
+      accSel.innerHTML=DATA.accounts.map(a=>`<option value="${a.id}"${data&&data.account===a.id?' selected':''}>${a.name} (${fmtFull(a.balance)})</option>`).join('');
+    }
+  }
 }
 function setType(t){
   txnType=t;
-  const cats = (t==='income')?getIncomeCats():(t==='liability'||t==='receivable')?[...getExpenseCats(),...getIncomeCats()]:getExpenseCats();
-  populateCatSelect('txn-cat', cats);
+  // Show/hide correct category dropdown
+  const isLR = (t==='liability'||t==='receivable');
+  document.getElementById('cat-group-expense').style.display = (t==='expense'||isLR)?'block':'none';
+  document.getElementById('cat-group-income').style.display = (t==='income')?'block':'none';
+  // For liability/receivable show expense cats in expense select (used as context category)
+  if(t==='expense') populateCatSelect('txn-cat-expense', getExpenseCats());
+  else if(t==='income') populateCatSelect('txn-cat-income', getIncomeCats());
+  else if(isLR) populateCatSelect('txn-cat-expense', getExpenseCats()); // context cat
+  // Liability / Receivable extra fields
+  const lrFields=document.getElementById('lr-fields');
+  if(lrFields) lrFields.style.display=isLR?'block':'none';
+  if(isLR){
+    const label=document.getElementById('lr-person-label');
+    if(label) label.textContent=t==='liability'?'👤 যার কাছ থেকে ঋণ নিয়েছেন':'👤 যাকে ধার দিয়েছেন';
+    // Populate account select
+    ensureAccounts();
+    const accSel=document.getElementById('txn-lr-account');
+    if(accSel) accSel.innerHTML=DATA.accounts.map(a=>`<option value="${a.id}">${a.name} (${fmtFull(a.balance)})</option>`).join('');
+  }
+  // Split/smart only relevant for expense/income
+  const splitBtn=document.getElementById('btn-toggle-split');
+  if(splitBtn) splitBtn.style.display=isLR?'none':'block';
+  const smartSect=splitBtn&&splitBtn.nextElementSibling;
+  // Type buttons styling
   ['expense','income','liability','receivable'].forEach(type=>{
     const btn=document.getElementById('type-'+type);
     if(btn) btn.className='type-btn'+(t===type?' active '+type:'');
   });
 }
 function populateCatSelect(id,cats,selected=null){
-  document.getElementById(id).innerHTML=cats.map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.innerHTML=cats.map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
 }function saveTransaction(){
   const smartText = document.getElementById('txn-smart').value.trim();
   const desc = document.getElementById('txn-desc').value.trim();
@@ -915,12 +992,35 @@ function populateCatSelect(id,cats,selected=null){
 
   // --- 2. NORMAL LOGIC (যদি স্মার্ট ইনপুট ফাঁকা থাকে) ---
   const amount=parseFloat(document.getElementById('txn-amount').value);
-  const cat=document.getElementById('txn-cat').value;
+  // Get category from the correct select based on type
+  const isLR=(type==='liability'||type==='receivable');
+  const catEl = type==='income'
+    ? document.getElementById('txn-cat-income')
+    : document.getElementById('txn-cat-expense');
+  const cat = catEl ? catEl.value : '';
   const finalDesc = desc || cat;
+  const person = isLR ? (document.getElementById('txn-person').value.trim()||'') : '';
+  const lrAccount = isLR ? (document.getElementById('txn-lr-account').value||'') : '';
 
   if(!amount||amount<=0){toast('Please enter a valid amount','error');return}
 
-  const txn={id:editId||uid(),type,amount,cat,desc:finalDesc,date,emoji:getCatEmoji(cat)};
+  const txn={
+    id:editId||uid(),
+    type,amount,cat,desc:finalDesc,date,
+    emoji:getCatEmoji(cat),
+    ...(isLR && {person, account:lrAccount, paidAmount:0, status:'pending'})
+  };
+
+  // Account balance update for liability/receivable
+  if(isLR && lrAccount && !editId){
+    ensureAccounts();
+    const accIdx=DATA.accounts.findIndex(a=>a.id===lrAccount);
+    if(accIdx!==-1){
+      // Liability = cash comes IN to account (ঋণ নিলে account-এ টাকা আসে)
+      // Receivable = cash goes OUT of account (ধার দিলে account থেকে টাকা বের হয়)
+      DATA.accounts[accIdx].balance += (type==='liability' ? amount : -amount);
+    }
+  }
   
   if(editId){
     const idx=DATA.transactions.findIndex(t=>t.id==editId);
@@ -933,6 +1033,71 @@ function populateCatSelect(id,cats,selected=null){
   saveData();closeModal('add-txn');renderAll();
 }
 function deleteTxn(id){if(!confirm('Delete this transaction?'))return;DATA.transactions=DATA.transactions.filter(t=>t.id!=id);saveData();renderAll();toast('Deleted','info')}
+
+// ══ PAY OFF / PAY BACK ══════════════════════════════════════════════════════
+function prepPayoffModal(txn){
+  if(!txn) return;
+  const isLiability=(txn.type==='liability');
+  const paid=txn.paidAmount||0;
+  const remaining=txn.amount-paid;
+  document.getElementById('payoff-title').textContent=isLiability?'💳 Pay Back (ঋণ পরিশোধ)':'💰 Pay Off (পাওনা আদায়)';
+  document.getElementById('payoff-type-label').textContent=isLiability?'🔴 Liability — ঋণ নিয়েছিলেন':'🔵 Receivable — ধার দিয়েছিলেন';
+  document.getElementById('payoff-person-display').textContent=(txn.person||'Unknown')+' · '+txn.desc;
+  document.getElementById('payoff-original-amount').textContent=fmt(txn.amount);
+  document.getElementById('payoff-remaining').textContent=fmt(remaining);
+  document.getElementById('payoff-remaining').style.color=remaining>0?'#ef4444':'#10b981';
+  document.getElementById('payoff-amount').value='';
+  document.getElementById('payoff-date').value=today();
+  document.getElementById('payoff-txn-id').value=txn.id;
+  document.getElementById('payoff-account-label').textContent=isLiability?'🏦 কোন Account থেকে পরিশোধ করবেন?':'🏦 কোন Account-এ টাকা আসবে?';
+  document.getElementById('payoff-btn').textContent=isLiability?'✅ Pay Back করুন':'✅ Pay Off করুন';
+  ensureAccounts();
+  const accSel=document.getElementById('payoff-account');
+  accSel.innerHTML=DATA.accounts.map(a=>`<option value="${a.id}">${a.name} (${fmtFull(a.balance)})</option>`).join('');
+  // Pre-select original account if available
+  if(txn.account){ accSel.value=txn.account; }
+}
+
+function doPayoff(){
+  const txnId=document.getElementById('payoff-txn-id').value;
+  const payAmt=parseFloat(document.getElementById('payoff-amount').value);
+  const accountId=document.getElementById('payoff-account').value;
+  const date=document.getElementById('payoff-date').value;
+  if(!payAmt||payAmt<=0){toast('পরিমাণ দিন','error');return}
+  if(!accountId){toast('Account select করুন','error');return}
+  const txnIdx=DATA.transactions.findIndex(t=>t.id==txnId);
+  if(txnIdx===-1){toast('Transaction পাওয়া যায়নি','error');return}
+  const txn=DATA.transactions[txnIdx];
+  const remaining=txn.amount-(txn.paidAmount||0);
+  if(payAmt>remaining){toast(`বাকি আছে মাত্র ${fmt(remaining)}। বেশি দেওয়া যাবে না।`,'error');return}
+  const isLiability=(txn.type==='liability');
+  // Update account balance
+  ensureAccounts();
+  const accIdx=DATA.accounts.findIndex(a=>a.id===accountId);
+  if(accIdx!==-1){
+    // Pay back liability → money leaves account (ঋণ পরিশোধে account থেকে টাকা বের হয়)
+    // Pay off receivable → money comes to account (পাওনা আদায়ে account-এ টাকা আসে)
+    DATA.accounts[accIdx].balance += isLiability ? -payAmt : payAmt;
+  }
+  // Update transaction paid amount
+  const newPaid=(txn.paidAmount||0)+payAmt;
+  DATA.transactions[txnIdx].paidAmount=newPaid;
+  DATA.transactions[txnIdx].status=newPaid>=txn.amount?'settled':'partial';
+  // Add a settlement record as a note transaction
+  DATA.transactions.unshift({
+    id:uid(),
+    type:isLiability?'expense':'income',
+    amount:payAmt,
+    cat:isLiability?'Liability Payment':'Receivable Collection',
+    desc:(isLiability?'Paid back to ':'Collected from ')+(txn.person||txn.desc),
+    date,
+    emoji:isLiability?'💳':'💰',
+    account:accountId,
+    linkedLRId:txnId
+  });
+  saveData();closeModal('payoff');renderAll();
+  toast((isLiability?'Pay back':'Pay off')+' করা হয়েছে: '+fmt(payAmt)+' ✓');
+}
 function prepBudgetModal(data){
   document.getElementById('budget-modal-title').textContent=data?'Edit Budget':'Add Budget';
   document.getElementById('budget-edit-id').value=data?data.id:'';
@@ -1041,11 +1206,13 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 function calcStats(){
   const income=DATA.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=DATA.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  // Liability = ঋণ নেওয়া → balance বাড়ে (cash পাওয়া গেছে, কিন্তু ফেরত দিতে হবে)
-  const liability=DATA.transactions.filter(t=>t.type==='liability').reduce((s,t)=>s+t.amount,0);
-  // Receivable = ধার দেওয়া → balance কমে (cash চলে গেছে, ফেরত পাওয়া যাবে)
-  const receivable=DATA.transactions.filter(t=>t.type==='receivable').reduce((s,t)=>s+t.amount,0);
-  const balance=DATA.profile.openingBalance+income-expense+liability-receivable;
+  // Liability pending = total liability minus paid amounts
+  const liabilityTxns=DATA.transactions.filter(t=>t.type==='liability');
+  const liability=liabilityTxns.reduce((s,t)=>s+(t.amount-(t.paidAmount||0)),0);
+  // Receivable pending = total receivable minus collected amounts
+  const receivableTxns=DATA.transactions.filter(t=>t.type==='receivable');
+  const receivable=receivableTxns.reduce((s,t)=>s+(t.amount-(t.paidAmount||0)),0);
+  const balance=DATA.profile.openingBalance+income-expense;
   const savings=income-expense;
   return{income,expense,balance,savings,liability,receivable};
 }
@@ -1083,10 +1250,12 @@ function renderKPI(){
   if(liabEl)liabEl.textContent=fmt(liability);
   const recvEl=document.getElementById('kpi-receivable');
   if(recvEl)recvEl.textContent=fmt(receivable);
+  const pendingLiab=DATA.transactions.filter(t=>t.type==='liability'&&t.status!=='settled').length;
+  const pendingRecv=DATA.transactions.filter(t=>t.type==='receivable'&&t.status!=='settled').length;
   const liabChEl=document.getElementById('kpi-liability-ch');
-  if(liabChEl)liabChEl.textContent=DATA.transactions.filter(t=>t.type==='liability').length+' টি ঋণ';
+  if(liabChEl)liabChEl.textContent=pendingLiab+' টি বাকি আছে';
   const recvChEl=document.getElementById('kpi-receivable-ch');
-  if(recvChEl)recvChEl.textContent=DATA.transactions.filter(t=>t.type==='receivable').length+' টি পাওনা';
+  if(recvChEl)recvChEl.textContent=pendingRecv+' টি বাকি পাওনা';
   const rate=income>0?Math.round((savings/income)*100):0;
   const pct=income>0?Math.round((expense/income)*100):0;
   const sEl=document.getElementById('kpi-savings-ch');
@@ -1106,7 +1275,9 @@ function renderKPI(){
   el.innerHTML=recent.length?recent.map(t=>{
     const color=t.type==='income'?'#10b981':t.type==='liability'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
     const sign=t.type==='income'?'+':t.type==='liability'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
-    return`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
+    const isLR=(t.type==='liability'||t.type==='receivable');
+    const subLabel=isLR&&t.person?t.person:t.cat;
+    return`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
   }).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
 }
   
@@ -1201,7 +1372,22 @@ function renderTransactionsPage(){
     const color=t.type==='income'?'#10b981':t.type==='liability'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
     const sign=t.type==='income'?'+':t.type==='liability'?'🔴':t.type==='receivable'?'🔵':'-';
     const label=t.type==='liability'?'Liability':t.type==='receivable'?'Receivable':t.type;
-    return`<div class="txn-full-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div><button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>`}).join(''):
+    const isLR=(t.type==='liability'||t.type==='receivable');
+    const paid=t.paidAmount||0;
+    const remaining=t.amount-paid;
+    const status=t.status||'';
+    let statusBadge='';
+    if(isLR){
+      if(status==='settled') statusBadge=`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#10b98120;color:#10b981;font-weight:600;margin-left:6px">✓ Settled</span>`;
+      else if(status==='partial') statusBadge=`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#f59e0b20;color:#f59e0b;font-weight:600;margin-left:6px">⟳ Partial (${fmt(remaining)} left)</span>`;
+      else statusBadge=`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#ef444420;color:#ef4444;font-weight:600;margin-left:6px">⚠ Pending</span>`;
+    }
+    const personInfo=isLR&&t.person?`<span style="color:var(--accent);font-size:10px">👤 ${t.person}</span> · `:'';
+    const payBtn=isLR&&status!=='settled'
+      ?`<button class="btn btn-sm" style="background:${t.type==='liability'?'#f59e0b20':'#06b6d420'};color:${t.type==='liability'?'#f59e0b':'#06b6d4'};border:1px solid ${t.type==='liability'?'#f59e0b40':'#06b6d440'};font-size:10px" onclick="openModal('payoff',${JSON.stringify(t).replace(/"/g,'&quot;')})">${t.type==='liability'?'💳 Pay Back':'💰 Pay Off'}</button>`
+      :'';
+    return`<div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>`;
+  }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
 }
 function renderBudgetsPage(){
@@ -1442,19 +1628,11 @@ function renderAccountTxnList(accountId){
   let txns=[...DATA.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(accountId!=='all') txns=txns.filter(t=>t.account===accountId||(!t.account&&accountId==='cash'));
   if(!txns.length){el.innerHTML=`<div class="empty" style="padding:36px"><div class="empty-icon">📭</div><div class="empty-text">No transactions for this account</div></div>`;return}
-  el.innerHTML=txns.slice(0,20).map(t=>`
-    <div class="txn-full-item">
-      <div class="txn-left">
-        <div class="txn-emoji">${t.emoji||'💸'}</div>
-        <div>
-          <div class="txn-name">${t.desc}</div>
-          <div class="txn-cat">${t.cat} · ${t.date}${t.account?` · <span style="color:var(--accent);font-size:10px">${DATA.accounts.find(a=>a.id===t.account)?.name||t.account}</span>`:''}</div>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div class="txn-amount" style="color:${t.type==='income'?'#10b981':'#ef4444'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div>
-      </div>
-    </div>`).join('');
+  el.innerHTML=txns.slice(0,20).map(t=>{
+    const color=t.type==='income'?'#10b981':t.type==='liability'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
+    const sign=t.type==='income'?'+':t.type==='liability'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
+    return`<div class="txn-full-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}${t.account?` · <span style="color:var(--accent);font-size:10px">${DATA.accounts.find(a=>a.id===t.account)?.name||t.account}</span>`:''}</div></div></div><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
+  }).join('');
 }
 
 function openEditAccount(id){
