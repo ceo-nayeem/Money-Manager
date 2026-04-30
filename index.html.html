@@ -504,8 +504,13 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       </div>
       <!-- BUDGETS -->
       <div class="page" id="page-budgets">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div style="font-size:13px;color:var(--text2)">Set monthly spending limits per category.</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="changeBudgetMonth(-1)">‹ Prev</button>
+            <input type="month" id="budget-month-picker" class="form-input" style="width:160px;padding:6px 10px;font-size:13px" onchange="onBudgetMonthChange()">
+            <button class="btn btn-ghost btn-sm" onclick="changeBudgetMonth(1)" id="btn-next-month">Next ›</button>
+            <span id="budget-month-label" style="font-size:13px;color:var(--text2);font-weight:500"></span>
+          </div>
           <button class="btn btn-primary" onclick="openModal('add-budget')">+ Add Budget</button>
         </div>
         <div class="budget-page-grid" id="budget-page-grid"></div>
@@ -802,7 +807,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 const STORAGE_KEY='finvault_v3';
 function loadData(){const s=localStorage.getItem(STORAGE_KEY);if(s)try{return JSON.parse(s)}catch(e){}return getDefaultData()}
 function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
-function getDefaultData(){return{profile:{name:'Arif Rahman',openingBalance:285000},accounts:[{id:'dbbl',name:'DBBL Bank',shortName:'Dutch-Bangla Bank Ltd.',type:'bank',balance:125000,note:'Main savings account',color:'dbbl',number:'**** **** **** 4821'},{id:'bkash',name:'bKash',shortName:'bKash Mobile Banking',type:'mobile',balance:8500,note:'Mobile wallet',color:'bkash',number:'01712-***-***'},{id:'nagad',name:'Nagad',shortName:'Nagad Digital Financial',type:'mobile',balance:3200,note:'Utility payments',color:'nagad',number:'01812-***-***'},{id:'cash',name:'Cash',shortName:'Cash in Hand',type:'cash',balance:15000,note:'Wallet & pocket money',color:'cash',number:''}],transfers:[],transactions:[{id:1,type:'expense',amount:1200,cat:'Food & Dining',desc:'Lunch at Bashundhara',date:'2026-04-22',emoji:'🍛',account:'cash'},{id:2,type:'expense',amount:800,cat:'Transport',desc:'Uber rides (April)',date:'2026-04-21',emoji:'🚗',account:'bkash'},{id:3,type:'income',amount:45000,cat:'Salary',desc:'April Salary – Company',date:'2026-04-20',emoji:'💼',account:'dbbl'},{id:4,type:'expense',amount:3500,cat:'Shopping',desc:'Aarong — Eid shopping',date:'2026-04-19',emoji:'🛍️',account:'bkash'},{id:5,type:'expense',amount:600,cat:'Entertainment',desc:'Netflix & Hoichoi',date:'2026-04-18',emoji:'🎬',account:'dbbl'},{id:6,type:'income',amount:12000,cat:'Freelance',desc:'Web design project',date:'2026-04-17',emoji:'💻',account:'bkash'},{id:7,type:'expense',amount:9000,cat:'Housing',desc:'April rent – Mirpur',date:'2026-04-15',emoji:'🏠',account:'dbbl'},{id:8,type:'expense',amount:450,cat:'Health',desc:'Square pharmacy',date:'2026-04-14',emoji:'💊',account:'nagad'},{id:9,type:'expense',amount:2200,cat:'Food & Dining',desc:'Grocery — Shwapno',date:'2026-04-13',emoji:'🛒',account:'cash'},{id:10,type:'expense',amount:1500,cat:'Education',desc:'Udemy online course',date:'2026-04-10',emoji:'📚',account:'dbbl'},{id:11,type:'income',amount:3000,cat:'Other Income',desc:'Interest – DPS account',date:'2026-04-05',emoji:'🏦',account:'dbbl'},{id:12,type:'expense',amount:700,cat:'Transport',desc:'CNG + bus fares',date:'2026-04-03',emoji:'🚌',account:'cash'}],budgets:[{id:1,cat:'Food & Dining',limit:8000,color:'#4f8ef7'},{id:2,cat:'Transport',limit:3000,color:'#10b981'},{id:3,cat:'Shopping',limit:5000,color:'#f59e0b'},{id:4,cat:'Entertainment',limit:2000,color:'#7c3aed'},{id:5,cat:'Housing',limit:12000,color:'#ef4444'},{id:6,cat:'Health',limit:2000,color:'#ec4899'}],goals:[{id:1,name:'Emergency Fund',emoji:'🛡️',target:200000,saved:85000,color:'#4f8ef7'},{id:2,name:'Laptop Upgrade',emoji:'💻',target:80000,saved:52000,color:'#7c3aed'},{id:3,name:"Vacation — Cox's Bazar",emoji:'🏖️',target:60000,saved:18000,color:'#10b981'},{id:4,name:'Car Down Payment',emoji:'🚗',target:300000,saved:95000,color:'#f59e0b'},{id:5,name:'Home Renovation',emoji:'🏡',target:150000,saved:30000,color:'#ef4444'},{id:6,name:'Investment Corpus',emoji:'📈',target:500000,saved:220000,color:'#ec4899'}],investments:[{id:1,name:'BRAC Bank Shares',type:'Stocks',principal:50000,current:63500,notes:'DSE listed'},{id:2,name:'AIBL Mutual Fund',type:'Mutual Fund',principal:30000,current:33800,notes:'Monthly dividend'},{id:3,name:'FDR – Dutch Bangla',type:'FDR',principal:100000,current:107500,notes:'12 month, 7.5%'},{id:4,name:'Premium Savings Bond',type:'Savings Bond',principal:25000,current:27250,notes:'Govt 3yr bond'}]}}
+function getDefaultData(){return{profile:{name:'Arif Rahman',openingBalance:285000},budgetMonthLimits:{},accounts:[{id:'dbbl',name:'DBBL Bank',shortName:'Dutch-Bangla Bank Ltd.',type:'bank',balance:125000,note:'Main savings account',color:'dbbl',number:'**** **** **** 4821'},{id:'bkash',name:'bKash',shortName:'bKash Mobile Banking',type:'mobile',balance:8500,note:'Mobile wallet',color:'bkash',number:'01712-***-***'},{id:'nagad',name:'Nagad',shortName:'Nagad Digital Financial',type:'mobile',balance:3200,note:'Utility payments',color:'nagad',number:'01812-***-***'},{id:'cash',name:'Cash',shortName:'Cash in Hand',type:'cash',balance:15000,note:'Wallet & pocket money',color:'cash',number:''}],transfers:[],transactions:[{id:1,type:'expense',amount:1200,cat:'Food & Dining',desc:'Lunch at Bashundhara',date:'2026-04-22',emoji:'🍛',account:'cash'},{id:2,type:'expense',amount:800,cat:'Transport',desc:'Uber rides (April)',date:'2026-04-21',emoji:'🚗',account:'bkash'},{id:3,type:'income',amount:45000,cat:'Salary',desc:'April Salary – Company',date:'2026-04-20',emoji:'💼',account:'dbbl'},{id:4,type:'expense',amount:3500,cat:'Shopping',desc:'Aarong — Eid shopping',date:'2026-04-19',emoji:'🛍️',account:'bkash'},{id:5,type:'expense',amount:600,cat:'Entertainment',desc:'Netflix & Hoichoi',date:'2026-04-18',emoji:'🎬',account:'dbbl'},{id:6,type:'income',amount:12000,cat:'Freelance',desc:'Web design project',date:'2026-04-17',emoji:'💻',account:'bkash'},{id:7,type:'expense',amount:9000,cat:'Housing',desc:'April rent – Mirpur',date:'2026-04-15',emoji:'🏠',account:'dbbl'},{id:8,type:'expense',amount:450,cat:'Health',desc:'Square pharmacy',date:'2026-04-14',emoji:'💊',account:'nagad'},{id:9,type:'expense',amount:2200,cat:'Food & Dining',desc:'Grocery — Shwapno',date:'2026-04-13',emoji:'🛒',account:'cash'},{id:10,type:'expense',amount:1500,cat:'Education',desc:'Udemy online course',date:'2026-04-10',emoji:'📚',account:'dbbl'},{id:11,type:'income',amount:3000,cat:'Other Income',desc:'Interest – DPS account',date:'2026-04-05',emoji:'🏦',account:'dbbl'},{id:12,type:'expense',amount:700,cat:'Transport',desc:'CNG + bus fares',date:'2026-04-03',emoji:'🚌',account:'cash'}],budgets:[{id:1,cat:'Food & Dining',limit:8000,color:'#4f8ef7'},{id:2,cat:'Transport',limit:3000,color:'#10b981'},{id:3,cat:'Shopping',limit:5000,color:'#f59e0b'},{id:4,cat:'Entertainment',limit:2000,color:'#7c3aed'},{id:5,cat:'Housing',limit:12000,color:'#ef4444'},{id:6,cat:'Health',limit:2000,color:'#ec4899'}],goals:[{id:1,name:'Emergency Fund',emoji:'🛡️',target:200000,saved:85000,color:'#4f8ef7'},{id:2,name:'Laptop Upgrade',emoji:'💻',target:80000,saved:52000,color:'#7c3aed'},{id:3,name:"Vacation — Cox's Bazar",emoji:'🏖️',target:60000,saved:18000,color:'#10b981'},{id:4,name:'Car Down Payment',emoji:'🚗',target:300000,saved:95000,color:'#f59e0b'},{id:5,name:'Home Renovation',emoji:'🏡',target:150000,saved:30000,color:'#ef4444'},{id:6,name:'Investment Corpus',emoji:'📈',target:500000,saved:220000,color:'#ec4899'}],investments:[{id:1,name:'BRAC Bank Shares',type:'Stocks',principal:50000,current:63500,notes:'DSE listed'},{id:2,name:'AIBL Mutual Fund',type:'Mutual Fund',principal:30000,current:33800,notes:'Monthly dividend'},{id:3,name:'FDR – Dutch Bangla',type:'FDR',principal:100000,current:107500,notes:'12 month, 7.5%'},{id:4,name:'Premium Savings Bond',type:'Savings Bond',principal:25000,current:27250,notes:'Govt 3yr bond'}]}}
 
 // ── Category & Investment-type storage ──────────────────────────────────────
 const DEFAULT_EXPENSE_CATS = [{name:'Food & Dining',emoji:'🍛',color:'#4f8ef7'},{name:'Transport',emoji:'🚗',color:'#10b981'},{name:'Shopping',emoji:'🛍️',color:'#f59e0b'},{name:'Housing',emoji:'🏠',color:'#ef4444'},{name:'Entertainment',emoji:'🎬',color:'#7c3aed'},{name:'Health',emoji:'💊',color:'#ec4899'},{name:'Education',emoji:'📚',color:'#06b6d4'},{name:'Utilities',emoji:'⚡',color:'#84cc16'},{name:'Personal Care',emoji:'💅',color:'#f472b6'},{name:'Other',emoji:'💸',color:'#94a3b8'}];
@@ -816,6 +821,7 @@ function syncCatsFromData(){
   if(!DATA.categories.expense) DATA.categories.expense = [...DEFAULT_EXPENSE_CATS];
   if(!DATA.categories.income)  DATA.categories.income  = [...DEFAULT_INCOME_CATS];
   if(!DATA.categories.invest)  DATA.categories.invest  = [...DEFAULT_INVEST_TYPES];
+  if(!DATA.budgetMonthLimits) DATA.budgetMonthLimits = {};
   CATS = DATA.categories;
 }
 function saveCats(){ saveData(); }
@@ -900,12 +906,11 @@ function prepTxnModal(data){
 function setType(t){
   txnType=t;
   const isLR=(t==='liability'||t==='receivable');
-  // Show/hide correct category dropdown
-  document.getElementById('cat-group-expense').style.display=(t==='expense'||isLR)?'block':'none';
+  // Show/hide correct category dropdown — LR তে category নেই
+  document.getElementById('cat-group-expense').style.display=(t==='expense')?'block':'none';
   document.getElementById('cat-group-income').style.display=(t==='income')?'block':'none';
   if(t==='expense') populateCatSelect('txn-cat-expense',getExpenseCats());
   else if(t==='income') populateCatSelect('txn-cat-income',getIncomeCats());
-  else if(isLR) populateCatSelect('txn-cat-expense',getExpenseCats());
   // Liability / Receivable person field
   const lrFields=document.getElementById('lr-fields');
   if(lrFields) lrFields.style.display=isLR?'block':'none';
@@ -1008,7 +1013,7 @@ function populateCatSelect(id,cats,selected=null){
   const catEl=type==='income'
     ?document.getElementById('txn-cat-income')
     :document.getElementById('txn-cat-expense');
-  const cat=catEl?catEl.value:'';
+  const cat=isLR?'':(catEl?catEl.value:'');
   const finalDesc=desc||cat;
   const person=isLR?(document.getElementById('txn-person').value.trim()||''):'';
   const accountId=document.getElementById('txn-account').value||'';
@@ -1429,7 +1434,13 @@ function toggleSubItems(id) {
 function renderDashBudgets(){
   const el=document.getElementById('dash-budget-items');if(!el)return;
   if(!DATA.budgets.length){el.innerHTML=`<div class="empty"><div class="empty-text">No budgets set</div></div>`;return}
-  el.innerHTML=DATA.budgets.map(b=>{const spent=DATA.transactions.filter(t=>t.cat===b.cat&&t.type==='expense').reduce((s,t)=>s+t.amount,0);const pct=Math.min(Math.round((spent/b.limit)*100),100);return`<div class="budget-item"><div class="budget-row"><span class="budget-name">${b.cat}</span><span class="budget-nums">${fmt(spent)}/${fmt(b.limit)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>=100?'#ef4444':b.color}"></div></div></div>`}).join('');
+  const curMonth = (() => { const now=new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; })();
+  el.innerHTML=DATA.budgets.map(b=>{
+    const monthLimit = getBudgetLimitForMonth(b, curMonth);
+    const spent=DATA.transactions.filter(t=>t.cat===b.cat&&t.type==='expense'&&t.date&&t.date.startsWith(curMonth)).reduce((s,t)=>s+t.amount,0);
+    const pct=Math.min(Math.round((spent/monthLimit)*100),100);
+    return`<div class="budget-item"><div class="budget-row"><span class="budget-name">${b.cat}</span><span class="budget-nums">${fmt(spent)}/${fmt(monthLimit)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>=100?'#ef4444':b.color}"></div></div></div>`;
+  }).join('');
 }
 function renderDashGoals(){
   const el=document.getElementById('dash-goals-grid');if(!el)return;
@@ -1474,14 +1485,100 @@ function renderTransactionsPage(){
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
 }
+// ══ BUDGET MONTH STATE ══════════════════════════════════════════════════════
+let budgetSelectedMonth = (() => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+})();
+
+function initBudgetMonthPicker(){
+  const picker = document.getElementById('budget-month-picker');
+  if(picker){
+    picker.value = budgetSelectedMonth;
+    updateBudgetMonthLabel();
+  }
+}
+function onBudgetMonthChange(){
+  const picker = document.getElementById('budget-month-picker');
+  if(picker) budgetSelectedMonth = picker.value;
+  updateBudgetMonthLabel();
+  renderBudgetsPage();
+}
+function changeBudgetMonth(dir){
+  const [y,m] = budgetSelectedMonth.split('-').map(Number);
+  const d = new Date(y, m-1+dir, 1);
+  budgetSelectedMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const picker = document.getElementById('budget-month-picker');
+  if(picker) picker.value = budgetSelectedMonth;
+  updateBudgetMonthLabel();
+  renderBudgetsPage();
+}
+function updateBudgetMonthLabel(){
+  const [y,m] = budgetSelectedMonth.split('-').map(Number);
+  const label = new Date(y,m-1,1).toLocaleString('en-IN',{month:'long',year:'numeric'});
+  const el = document.getElementById('budget-month-label');
+  if(el) el.textContent = label;
+  // "Next" button disable করব যদি current month হয়
+  const now = new Date();
+  const curM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const btn = document.getElementById('btn-next-month');
+  if(btn) btn.disabled = budgetSelectedMonth >= curM;
+}
+
+function getBudgetKeyForMonth(budgetId, month){ return `bdg_${budgetId}_${month}`; }
+
+function getBudgetLimitForMonth(budget, month){
+  // Month-specific override আছে? নাহলে default limit
+  if(DATA.budgetMonthLimits && DATA.budgetMonthLimits[getBudgetKeyForMonth(budget.id,month)] !== undefined){
+    return DATA.budgetMonthLimits[getBudgetKeyForMonth(budget.id,month)];
+  }
+  return budget.limit;
+}
+
 function renderBudgetsPage(){
+  initBudgetMonthPicker();
   const el=document.getElementById('budget-page-grid');if(!el)return;
   if(!DATA.budgets.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:40px"><div class="empty-icon">📊</div><div class="empty-text">No budgets yet. Add one!</div></div>`;return}
+  const [y,m] = budgetSelectedMonth.split('-').map(Number);
   el.innerHTML=DATA.budgets.map(b=>{
-    const spent=DATA.transactions.filter(t=>t.cat===b.cat&&t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    const pct=Math.min(Math.round((spent/b.limit)*100),100);const over=spent>b.limit;const rem=b.limit-spent;
-    return`<div class="budget-page-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${getCatEmoji(b.cat)}</span><span style="font-weight:600;font-size:13px">${b.cat}</span></div><span style="font-size:12px;padding:3px 8px;border-radius:20px;background:${over?'#ef444420':'#10b98118'};color:${over?'#ef4444':'#10b981'};font-weight:700">${pct}%</span></div><div class="budget-stat"><span style="color:var(--text2)">Spent</span><span style="font-family:JetBrains Mono;font-weight:600">${fmt(spent)}</span></div><div class="budget-stat"><span style="color:var(--text2)">Limit</span><span style="font-family:JetBrains Mono">${fmt(b.limit)}</span></div><div class="budget-stat"><span style="color:var(--text2)">${over?'Over by':'Remaining'}</span><span style="font-family:JetBrains Mono;color:${over?'#ef4444':'#10b981'}">${fmt(Math.abs(rem))}</span></div><div class="progress-bar" style="margin:10px 0 4px"><div class="progress-fill" style="width:${pct}%;background:${over?'#ef4444':b.color}"></div></div><div class="${over?'budget-over':'budget-ok'}">${over?'⚠ Over budget':'✓ Within budget'}</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="openModal('add-budget',${JSON.stringify(b).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteBudget(${b.id})">Remove</button></div></div>`;
+    const monthLimit = getBudgetLimitForMonth(b, budgetSelectedMonth);
+    // শুধু selected month এর expense count করব
+    const spent=DATA.transactions.filter(t=>t.cat===b.cat&&t.type==='expense'&&t.date&&t.date.startsWith(budgetSelectedMonth)).reduce((s,t)=>s+t.amount,0);
+    const pct=Math.min(Math.round((spent/monthLimit)*100),100);const over=spent>monthLimit;const rem=monthLimit-spent;
+    return`<div class="budget-page-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${getCatEmoji(b.cat)}</span><span style="font-weight:600;font-size:13px">${b.cat}</span></div>
+        <span style="font-size:12px;padding:3px 8px;border-radius:20px;background:${over?'#ef444420':'#10b98118'};color:${over?'#ef4444':'#10b981'};font-weight:700">${pct}%</span>
+      </div>
+      <div class="budget-stat"><span style="color:var(--text2)">Spent</span><span style="font-family:JetBrains Mono;font-weight:600">${fmt(spent)}</span></div>
+      <div class="budget-stat"><span style="color:var(--text2)">Limit</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:JetBrains Mono" id="blimit-display-${b.id}">${fmt(monthLimit)}</span>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px" onclick="editMonthBudgetLimit(${b.id})">Edit</button>
+        </span>
+      </div>
+      <div class="budget-stat"><span style="color:var(--text2)">${over?'Over by':'Remaining'}</span><span style="font-family:JetBrains Mono;color:${over?'#ef4444':'#10b981'}">${fmt(Math.abs(rem))}</span></div>
+      <div class="progress-bar" style="margin:10px 0 4px"><div class="progress-fill" style="width:${pct}%;background:${over?'#ef4444':b.color}"></div></div>
+      <div class="${over?'budget-over':'budget-ok'}">${over?'⚠ Over budget':'✓ Within budget'}</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openModal('add-budget',${JSON.stringify(b).replace(/"/g,'&quot;')})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBudget(${b.id})">Remove</button>
+      </div>
+    </div>`;
   }).join('');
+}
+
+function editMonthBudgetLimit(budgetId){
+  const b = DATA.budgets.find(x=>x.id==budgetId); if(!b) return;
+  const cur = getBudgetLimitForMonth(b, budgetSelectedMonth);
+  const val = prompt(`"${b.cat}" এর জন্য ${budgetSelectedMonth} মাসের budget limit (৳):`, cur);
+  if(val===null) return;
+  const num = parseFloat(val);
+  if(!num||num<=0){toast('Valid amount দিন','error');return}
+  if(!DATA.budgetMonthLimits) DATA.budgetMonthLimits={};
+  DATA.budgetMonthLimits[getBudgetKeyForMonth(budgetId, budgetSelectedMonth)] = num;
+  saveData(); renderBudgetsPage();
+  toast(`${budgetSelectedMonth} এর limit আপডেট হয়েছে ✓`);
 }
 function renderGoalsPage(){
   const el=document.getElementById('goals-page-grid');if(!el)return;
