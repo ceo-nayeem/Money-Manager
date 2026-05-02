@@ -1020,12 +1020,13 @@ function populateCatSelect(id,cats,selected=null){
 
   if(!amount||amount<=0){toast('Please enter a valid amount','error');return}
 
+  const oldTxnForLR=editId?DATA.transactions.find(t=>t.id==editId):null;
   const txn={
     id:editId||uid(),
     type,amount,cat,desc:finalDesc,date,
     emoji:getCatEmoji(cat),
     account:accountId,
-    ...(isLR&&{person,paidAmount:0,status:'pending'})
+    ...(isLR&&{person,paidAmount:oldTxnForLR?(oldTxnForLR.paidAmount||0):0,status:oldTxnForLR?(oldTxnForLR.paidAmount>=amount?'settled':oldTxnForLR.status||'pending'):'pending'})
   };
 
   // ── Account balance update ────────────────────────────────────────────────
