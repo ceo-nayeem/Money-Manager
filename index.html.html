@@ -590,19 +590,20 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <select class="form-input" id="txn-account"></select>
     </div>
 
-    <div id="split-section" style="display:none; margin-top: 15px; border-top: 1px dashed var(--border2); padding-top: 15px;">
-      <div style="font-size: 11px; color: var(--text3); font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">Sub-Transactions</div>
-      <div id="split-items-container"></div>
-      <button type="button" class="btn btn-ghost" style="width:100%; font-size:12px; margin-top:5px;" onclick="addSplitRow()">+ Add Sub-Item</button>
+    <!-- Group Transaction Section -->
+    <div id="group-section" style="display:none;margin-top:14px;border-top:1px solid var(--border2);padding-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Sub-Items</div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addGroupRow()">+ Add Item</button>
+      </div>
+      <div id="group-items-container" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;font-size:12px">
+        <span style="color:var(--text2)">Total</span>
+        <span id="group-total-display" style="font-family:JetBrains Mono;font-weight:700;color:var(--text)">৳0</span>
+      </div>
     </div>
-    <button type="button" id="btn-toggle-split" class="btn btn-ghost" style="width:100%; margin-top:10px; border: 1px solid var(--border2);" onclick="toggleSplitSection()">Split This Transaction</button>
-    
-    <div style="text-align:center; margin: 10px 0; font-size: 10.5px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">— OR SMART SPLIT (NLP) —</div>
-    <div class="form-group">
-      <label class="form-label">Smart Entry</label>
-      <input class="form-input" type="text" id="txn-smart" placeholder="e.g. 200 Food, 50 Transport">
-      <div style="font-size:10px;color:var(--text2);margin-top:4px">Type multiple expenses separated by commas. Leave blank to use normal amount.</div>
-    </div>
+    <button type="button" id="btn-toggle-group" class="btn btn-ghost" style="width:100%;margin-top:10px;border:1px solid var(--border2);font-size:12px" onclick="toggleGroupSection()">📦 Group Transaction</button>
+    <input type="hidden" id="txn-smart" value="">
 
     <div class="form-group"><label class="form-label">Description / Note</label><input class="form-input" type="text" id="txn-desc" placeholder="e.g. Lunch at restaurant"></div>
     <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="txn-date"></div>
@@ -875,7 +876,7 @@ function openModal(id,data=null){
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
-let txnType='expense',editTxnId=null;
+let txnType='expense',editTxnId=null,isGroupMode=false;
 function prepTxnModal(data){
   editTxnId=data?data.id:null;
   document.getElementById('txn-modal-title').textContent=data?'Edit Transaction':'Add Transaction';
@@ -901,6 +902,24 @@ function prepTxnModal(data){
   const isLR=(txnType==='liability'||txnType==='receivable');
   if(isLR){
     document.getElementById('txn-person').value=data?data.person||'':'';
+  }
+  // Group mode: load splits if editing a group txn
+  isGroupMode=false;
+  const groupSection=document.getElementById('group-section');
+  const groupBtn=document.getElementById('btn-toggle-group');
+  const amtInput=document.getElementById('txn-amount');
+  if(data&&data.splits&&data.splits.length>0){
+    isGroupMode=true;
+    groupSection.style.display='block';
+    groupBtn.textContent='✕ Cancel Group';
+    amtInput.disabled=true;amtInput.placeholder='Auto-calculated';
+    loadGroupSplits(data.splits);
+  } else {
+    groupSection.style.display='none';
+    groupBtn.textContent='📦 Group Transaction';
+    amtInput.disabled=false;amtInput.placeholder='0';
+    document.getElementById('group-items-container').innerHTML='';
+    document.getElementById('group-total-display').textContent='৳0';
   }
 }
 function setType(t){
@@ -930,9 +949,15 @@ function setType(t){
     else if(t==='liability') accLabel.textContent='🏦 কোন Account-এ ঋণের টাকা আসবে?';
     else if(t==='receivable') accLabel.textContent='🏦 কোন Account থেকে ধার দেওয়া হবে?';
   }
-  // Split/smart — only for expense/income
-  const splitBtn=document.getElementById('btn-toggle-split');
-  if(splitBtn) splitBtn.style.display=isLR?'none':'block';
+  // Group button — only for expense/income
+  const groupBtn2=document.getElementById('btn-toggle-group');
+  if(groupBtn2) groupBtn2.style.display=isLR?'none':'block';
+  // Refresh group row category options if group mode active
+  if(isGroupMode&&!isLR){
+    const cats=t==='income'?getIncomeCats():getExpenseCats();
+    const catOpts=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    document.querySelectorAll('.group-cat').forEach(sel=>{const cur=sel.value;sel.innerHTML=catOpts;sel.value=cur||cats[0];});
+  }
   // Type buttons styling
   ['expense','income','liability','receivable'].forEach(type=>{
     const btn=document.getElementById('type-'+type);
@@ -944,7 +969,7 @@ function populateCatSelect(id,cats,selected=null){
   if(!el) return;
   el.innerHTML=cats.map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
 }function saveTransaction(){
-  const smartText = document.getElementById('txn-smart').value.trim();
+  const smartText='';
   const desc = document.getElementById('txn-desc').value.trim();
   const date = document.getElementById('txn-date').value;
   const type = txnType;
@@ -952,62 +977,50 @@ function populateCatSelect(id,cats,selected=null){
 
   if(!date){toast('Please select a date','error');return}
 
-  // --- 1. SMART SPLIT / NLP LOGIC ---
-  if(smartText !== '') {
-    // Comma (,) বা and দিয়ে বাক্যটিকে আলাদা করবে
-    const chunks = smartText.split(/,|and|\+/i); 
-    let addedCount = 0;
-
-    chunks.forEach((chunk, i) => {
-      const cleanChunk = chunk.trim().toLowerCase();
-      if(!cleanChunk) return;
-
-      // বাক্য থেকে নাম্বার (Amount) বের করা
-      const amountMatch = cleanChunk.match(/(\d+(\.\d+)?)/);
-      if(!amountMatch) return;
-      const amount = parseFloat(amountMatch[0]);
-
-      // নাম্বার সরিয়ে বাক্যের বাকি অংশ (Text/Category) বের করা
-      const textPart = cleanChunk.replace(amountMatch[0], '').trim();
-
-      const availableCats = type === 'income' ? getIncomeCats() : getExpenseCats();
-      let matchedCat = availableCats[0]; // Default category
-
-      // টেক্সটের সাথে আপনার সেভ করা ক্যাটেগরির নাম মেলানোর চেষ্টা
-      for(let cat of availableCats) {
-         const catLower = cat.toLowerCase();
-         // 'for', 'in', 'on' ইত্যাদি শব্দ বাদ দিয়ে মূল শব্দ খোঁজা
-         const cleanText = textPart.replace(/\b(for|in|on|at)\b/gi, '').trim(); 
-         if(cleanText.includes(catLower) || (catLower.includes(cleanText) && cleanText.length > 2)) {
-             matchedCat = cat;
-             break;
-         }
-      }
-
-      const txn = {
-        id: uid() + i, // Unique ID for each split
-        type: type,
-        amount: amount,
-        cat: matchedCat,
-        desc: desc || `${matchedCat} 🔗⛓️‍💥`,
-        date: date,
-        emoji: getCatEmoji(matchedCat)
-      };
-      DATA.transactions.unshift(txn);
-      addedCount++;
+  // --- 1. GROUP TRANSACTION LOGIC ---
+  if(isGroupMode) {
+    const rows = document.querySelectorAll('.group-row');
+    const splits = [];
+    let groupTotal = 0;
+    rows.forEach(row => {
+      const amt = parseFloat(row.querySelector('.group-amt').value)||0;
+      const cat = row.querySelector('.group-cat').value;
+      const d = row.querySelector('.group-desc').value.trim()||cat;
+      if(amt > 0){ splits.push({amount:amt, cat, desc:d, emoji:getCatEmoji(cat)}); groupTotal+=amt; }
     });
-
-    if(addedCount > 0) {
-        toast(`${addedCount} split transactions added ✓`);
-        saveData(); closeModal('add-txn'); renderAll();
-        return;
-    } else {
-        toast('Could not understand smart format','error');
-        return;
+    if(splits.length === 0){toast('অন্তত একটি sub-item যোগ করুন','error');return}
+    if(!desc){toast('Group এর একটা title/description দিন','error');return}
+    const isLR2=(type==='liability'||type==='receivable');
+    const accountId2=document.getElementById('txn-account').value||'';
+    const person2=isLR2?(document.getElementById('txn-person').value.trim()||''):'';
+    const oldTxnG=editId?DATA.transactions.find(t=>t.id==editId):null;
+    const txnG={
+      id:editId||uid(), type, amount:groupTotal, cat:splits[0].cat, desc, date,
+      emoji:'📦', account:accountId2, splits,
+      ...(isLR2&&{person:person2,paidAmount:oldTxnG?(oldTxnG.paidAmount||0):0,status:oldTxnG?(oldTxnG.paidAmount>=groupTotal?'settled':oldTxnG.status||'pending'):'pending'})
+    };
+    if(editId&&accountId2){
+      ensureAccounts();
+      const oldT=DATA.transactions.find(t=>t.id==editId);
+      if(oldT&&oldT.account){
+        const oIdx=DATA.accounts.findIndex(a=>a.id===oldT.account);
+        if(oIdx!==-1){if(oldT.type==='income')DATA.accounts[oIdx].balance-=oldT.amount;else if(oldT.type==='expense')DATA.accounts[oIdx].balance+=oldT.amount;}
+      }
+      const nIdx=DATA.accounts.findIndex(a=>a.id===accountId2);
+      if(nIdx!==-1){if(type==='income')DATA.accounts[nIdx].balance+=groupTotal;else if(type==='expense')DATA.accounts[nIdx].balance-=groupTotal;}
+    } else if(!editId&&accountId2){
+      ensureAccounts();
+      const nIdx=DATA.accounts.findIndex(a=>a.id===accountId2);
+      if(nIdx!==-1){if(type==='income')DATA.accounts[nIdx].balance+=groupTotal;else if(type==='expense')DATA.accounts[nIdx].balance-=groupTotal;}
     }
+    if(editId){const idx=DATA.transactions.findIndex(t=>t.id==editId);if(idx!==-1)DATA.transactions[idx]=txnG;toast('Group updated ✓');}
+    else{DATA.transactions.unshift(txnG);toast('Group transaction added ✓');}
+    saveData();closeModal('add-txn');renderAll();
+    return;
   }
 
-  // --- 2. NORMAL LOGIC (যদি স্মার্ট ইনপুট ফাঁকা থাকে) ---
+  // --- 2. NORMAL LOGIC ---
+
   const amount=parseFloat(document.getElementById('txn-amount').value);
   const isLR=(type==='liability'||type==='receivable');
   const catEl=type==='income'
@@ -1368,7 +1381,7 @@ function renderKPI(){
     const sign=t.type==='income'?'+':t.type==='liability'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
     const isLR=(t.type==='liability'||t.type==='receivable');
     const subLabel=isLR&&t.person?t.person:t.cat;
-    return`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
+    const grpBadge=t.splits&&t.splits.length>0?` <span style="font-size:9px;color:#4f8ef7">📦${t.splits.length}</span>`:'';return`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}${grpBadge}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
   }).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
 }
   
@@ -1483,7 +1496,11 @@ function renderTransactionsPage(){
     const payBtn=isLR&&status!=='settled'
       ?`<button class="btn btn-sm" style="background:${t.type==='liability'?'#f59e0b20':'#06b6d420'};color:${t.type==='liability'?'#f59e0b':'#06b6d4'};border:1px solid ${t.type==='liability'?'#f59e0b40':'#06b6d440'};font-size:10px" onclick="openModal('payoff',${JSON.stringify(t).replace(/"/g,'&quot;')})">${t.type==='liability'?'💳 Pay Back':'💰 Pay Off'}</button>`
       :'';
-    return`<div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>`;
+    const isGroup=t.splits&&t.splits.length>0;
+    const groupBadge=isGroup?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:#4f8ef720;color:#4f8ef7;font-weight:600;margin-left:5px">📦 ${t.splits.length} items</span>`:'';
+    const subRows=isGroup?`<div id="grp-${t.id}" style="display:none;padding:6px 0 2px 44px;border-top:1px solid var(--border);">`+t.splits.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:12px;"><span style="color:var(--text2)">${s.emoji||getCatEmoji(s.cat)} ${s.desc||s.cat} <span style="color:var(--text3);font-size:10px">· ${s.cat}</span></span><span style="font-family:JetBrains Mono;font-weight:600;color:${color}">-${fmt(s.amount)}</span></div>`).join('')+`</div>`:'';
+    const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleGrp('${t.id}',this)">▼ Show</button>`:'';
+    return`<div><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
 }
@@ -2115,56 +2132,65 @@ window.addEventListener('load', () => {
   initFirebase();
 });
 
-/* open */
-  let isSplitMode = false;
-function toggleSplitSection() {
-    isSplitMode = !isSplitMode;
-    const section = document.getElementById('split-section');
-    const btn = document.getElementById('btn-toggle-split');
-    const mainAmount = document.getElementById('txn-amount');
-    const mainCat = document.getElementById('txn-cat');
-
-    if (isSplitMode) {
-        section.style.display = 'block';
-        btn.textContent = 'Switch to Single Entry';
-        mainAmount.disabled = true; // Sub-item thakle main amount auto calculate hobe
-        mainAmount.placeholder = "Auto-calculated";
-        if (document.getElementById('split-items-container').children.length === 0) addSplitRow();
-    } else {
-        section.style.display = 'none';
-        btn.textContent = 'Split This Transaction';
-        mainAmount.disabled = false;
-        mainAmount.placeholder = "0";
-    }
+// ══ GROUP TRANSACTION FUNCTIONS ══════════════════════════════════════════════
+function toggleGroupSection(){
+  isGroupMode=!isGroupMode;
+  const section=document.getElementById('group-section');
+  const btn=document.getElementById('btn-toggle-group');
+  const amtInput=document.getElementById('txn-amount');
+  if(isGroupMode){
+    section.style.display='block';
+    btn.textContent='✕ Cancel Group';
+    amtInput.disabled=true;amtInput.placeholder='Auto-calculated';
+    const container=document.getElementById('group-items-container');
+    if(container.children.length===0) addGroupRow();
+  } else {
+    section.style.display='none';
+    btn.textContent='📦 Group Transaction';
+    amtInput.disabled=false;amtInput.placeholder='0';
+    document.getElementById('group-items-container').innerHTML='';
+    document.getElementById('group-total-display').textContent='৳0';
+  }
 }
 
-function addSplitRow() {
-    const container = document.getElementById('split-items-container');
-    const rowId = 'row-' + Date.now();
-    const div = document.createElement('div');
-    div.className = 'form-row';
-    div.id = rowId;
-    div.style.marginBottom = '8px';
-    
-    const cats = txnType === 'income' ? getIncomeCats() : getExpenseCats();
-    let catOptions = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-
-    div.innerHTML = `
-        <div class="form-group" style="flex:2"><input class="form-input split-amt" type="number" placeholder="Amt" oninput="calcTotalFromSplits()"></div>
-        <div class="form-group" style="flex:3"><select class="form-input split-cat">${catOptions}</select></div>
-        <button class="btn" style="color:var(--accent5); padding:0 10px;" onclick="document.getElementById('${rowId}').remove(); calcTotalFromSplits();">✕</button>
-    `;
-    container.appendChild(div);
+function addGroupRow(split=null){
+  const container=document.getElementById('group-items-container');
+  const rowId='grow-'+Date.now()+Math.floor(Math.random()*999);
+  const cats=txnType==='income'?getIncomeCats():getExpenseCats();
+  const catOpts=cats.map(c=>`<option value="${c}"${split&&split.cat===c?' selected':''}>${c}</option>`).join('');
+  const div=document.createElement('div');
+  div.className='group-row';
+  div.id=rowId;
+  div.style.cssText='display:grid;grid-template-columns:80px 1fr 1fr auto;gap:6px;align-items:center;background:var(--bg3);padding:8px 10px;border-radius:8px;border:1px solid var(--border)';
+  div.innerHTML=`
+    <input class="form-input group-amt" type="number" placeholder="৳ amt" min="0" value="${split?split.amount:''}" oninput="calcGroupTotal()" style="padding:6px 8px;font-size:12px;font-family:JetBrains Mono">
+    <input class="form-input group-desc" type="text" placeholder="description" value="${split?split.desc:''}" style="padding:6px 8px;font-size:12px">
+    <select class="form-input group-cat" style="padding:6px 8px;font-size:12px">${catOpts}</select>
+    <button class="btn btn-danger btn-sm" style="padding:5px 9px;font-size:13px;line-height:1" onclick="document.getElementById('${rowId}').remove();calcGroupTotal()">✕</button>
+  `;
+  container.appendChild(div);
+  calcGroupTotal();
 }
 
-function calcTotalFromSplits() {
-    let total = 0;
-    document.querySelectorAll('.split-amt').forEach(input => {
-        total += parseFloat(input.value) || 0;
-    });
-    document.getElementById('txn-amount').value = total;
+function loadGroupSplits(splits){
+  document.getElementById('group-items-container').innerHTML='';
+  splits.forEach(s=>addGroupRow(s));
 }
-  /* close */
+
+function calcGroupTotal(){
+  let total=0;
+  document.querySelectorAll('.group-amt').forEach(inp=>{total+=parseFloat(inp.value)||0;});
+  document.getElementById('group-total-display').textContent=fmt(total);
+  document.getElementById('txn-amount').value=total;
+}
+
+function toggleGrp(id,btn){
+  const el=document.getElementById('grp-'+id);
+  if(!el)return;
+  const hidden=el.style.display==='none';
+  el.style.display=hidden?'block':'none';
+  btn.textContent=hidden?'▲ Hide':'▼ Show';
+}
 </script>
 </body>
 </html>
