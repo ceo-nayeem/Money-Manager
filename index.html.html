@@ -594,7 +594,15 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <div id="group-section" style="display:none;margin-top:14px;border-top:1px solid var(--border2);padding-top:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Sub-Items</div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="addGroupRow()">+ Add Item</button>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="showExistingPicker()">🔗 Existing</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addGroupRow()">+ New Item</button>
+        </div>
+      </div>
+      <!-- Existing transaction picker -->
+      <div id="existing-picker" style="display:none;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:10px">
+        <input class="form-input" id="existing-search" placeholder="Search transactions..." oninput="filterExistingList()" style="margin-bottom:8px;font-size:12px;padding:7px 10px">
+        <div id="existing-list" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
       </div>
       <div id="group-items-container" style="display:flex;flex-direction:column;gap:6px"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;font-size:12px">
@@ -876,7 +884,7 @@ function openModal(id,data=null){
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
-let txnType='expense',editTxnId=null,isGroupMode=false;
+let txnType='expense',editTxnId=null,isGroupMode=false,linkedExistingIds=new Set();
 function prepTxnModal(data){
   editTxnId=data?data.id:null;
   document.getElementById('txn-modal-title').textContent=data?'Edit Transaction':'Add Transaction';
@@ -913,7 +921,8 @@ function prepTxnModal(data){
     groupSection.style.display='block';
     groupBtn.textContent='✕ Cancel Group';
     amtInput.disabled=true;amtInput.placeholder='Auto-calculated';
-    loadGroupSplits(data.splits);
+    document.getElementById('existing-picker').style.display='none';
+    loadGroupSplits(data.splits);  // this also resets linkedExistingIds
   } else {
     groupSection.style.display='none';
     groupBtn.textContent='📦 Group Transaction';
@@ -1013,6 +1022,18 @@ function populateCatSelect(id,cats,selected=null){
       const nIdx=DATA.accounts.findIndex(a=>a.id===accountId2);
       if(nIdx!==-1){if(type==='income')DATA.accounts[nIdx].balance+=groupTotal;else if(type==='expense')DATA.accounts[nIdx].balance-=groupTotal;}
     }
+    // Mark linked existing txns with groupParentId; unmark previously linked ones
+    if(editId){
+      // Clear old groupParentId marks for previous linked items
+      DATA.transactions.forEach(t=>{if(t.groupParentId==editId) t.groupParentId=null;});
+    }
+    const newId=txnG.id;
+    splits.forEach(s=>{
+      if(s.linkedTxnId){
+        const lt=DATA.transactions.find(t=>t.id==s.linkedTxnId);
+        if(lt) lt.groupParentId=newId;
+      }
+    });
     if(editId){const idx=DATA.transactions.findIndex(t=>t.id==editId);if(idx!==-1)DATA.transactions[idx]=txnG;toast('Group updated ✓');}
     else{DATA.transactions.unshift(txnG);toast('Group transaction added ✓');}
     saveData();closeModal('add-txn');renderAll();
@@ -1092,6 +1113,15 @@ function populateCatSelect(id,cats,selected=null){
 function deleteTxn(id){
   if(!confirm('Delete this transaction?'))return;
   const txn=DATA.transactions.find(t=>t.id==id);
+  // If deleting a group txn, unlink its linked children
+  if(txn&&txn.splits){
+    txn.splits.forEach(s=>{
+      if(s.linkedTxnId){
+        const lt=DATA.transactions.find(t=>t.id==s.linkedTxnId);
+        if(lt) lt.groupParentId=null;
+      }
+    });
+  }
   // Revert account balance effect
   if(txn&&txn.account){
     ensureAccounts();
@@ -1498,9 +1528,10 @@ function renderTransactionsPage(){
       :'';
     const isGroup=t.splits&&t.splits.length>0;
     const groupBadge=isGroup?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:#4f8ef720;color:#4f8ef7;font-weight:600;margin-left:5px">📦 ${t.splits.length} items</span>`:'';
+    const inGroupBadge=t.groupParentId?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:#7c3aed20;color:#a78bfa;font-weight:600;margin-left:5px">🔗 In group</span>`:'';
     const subRows=isGroup?`<div id="grp-${t.id}" style="display:none;padding:6px 0 2px 44px;border-top:1px solid var(--border);">`+t.splits.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:12px;"><span style="color:var(--text2)">${s.emoji||getCatEmoji(s.cat)} ${s.desc||s.cat} <span style="color:var(--text3);font-size:10px">· ${s.cat}</span></span><span style="font-family:JetBrains Mono;font-weight:600;color:${color}">-${fmt(s.amount)}</span></div>`).join('')+`</div>`:'';
     const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleGrp('${t.id}',this)">▼ Show</button>`:'';
-    return`<div><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>${subRows}</div>`;
+    return`<div><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
 }
@@ -2142,6 +2173,7 @@ function toggleGroupSection(){
     section.style.display='block';
     btn.textContent='✕ Cancel Group';
     amtInput.disabled=true;amtInput.placeholder='Auto-calculated';
+    linkedExistingIds=new Set();
     const container=document.getElementById('group-items-container');
     if(container.children.length===0) addGroupRow();
   } else {
@@ -2150,32 +2182,12 @@ function toggleGroupSection(){
     amtInput.disabled=false;amtInput.placeholder='0';
     document.getElementById('group-items-container').innerHTML='';
     document.getElementById('group-total-display').textContent='৳0';
+    document.getElementById('existing-picker').style.display='none';
+    linkedExistingIds=new Set();
   }
 }
 
-function addGroupRow(split=null){
-  const container=document.getElementById('group-items-container');
-  const rowId='grow-'+Date.now()+Math.floor(Math.random()*999);
-  const cats=txnType==='income'?getIncomeCats():getExpenseCats();
-  const catOpts=cats.map(c=>`<option value="${c}"${split&&split.cat===c?' selected':''}>${c}</option>`).join('');
-  const div=document.createElement('div');
-  div.className='group-row';
-  div.id=rowId;
-  div.style.cssText='display:grid;grid-template-columns:80px 1fr 1fr auto;gap:6px;align-items:center;background:var(--bg3);padding:8px 10px;border-radius:8px;border:1px solid var(--border)';
-  div.innerHTML=`
-    <input class="form-input group-amt" type="number" placeholder="৳ amt" min="0" value="${split?split.amount:''}" oninput="calcGroupTotal()" style="padding:6px 8px;font-size:12px;font-family:JetBrains Mono">
-    <input class="form-input group-desc" type="text" placeholder="description" value="${split?split.desc:''}" style="padding:6px 8px;font-size:12px">
-    <select class="form-input group-cat" style="padding:6px 8px;font-size:12px">${catOpts}</select>
-    <button class="btn btn-danger btn-sm" style="padding:5px 9px;font-size:13px;line-height:1" onclick="document.getElementById('${rowId}').remove();calcGroupTotal()">✕</button>
-  `;
-  container.appendChild(div);
-  calcGroupTotal();
-}
 
-function loadGroupSplits(splits){
-  document.getElementById('group-items-container').innerHTML='';
-  splits.forEach(s=>addGroupRow(s));
-}
 
 function calcGroupTotal(){
   let total=0;
@@ -2190,6 +2202,134 @@ function toggleGrp(id,btn){
   const hidden=el.style.display==='none';
   el.style.display=hidden?'block':'none';
   btn.textContent=hidden?'▲ Hide':'▼ Show';
+}
+
+// ── Existing Transaction Picker ───────────────────────────────────────────────
+// Track which existing txn IDs are already linked in current group session
+
+function showExistingPicker(){
+  const picker=document.getElementById('existing-picker');
+  const isHidden=picker.style.display==='none';
+  picker.style.display=isHidden?'block':'none';
+  if(isHidden){
+    document.getElementById('existing-search').value='';
+    renderExistingList('');
+  }
+}
+
+function renderExistingList(query){
+  const list=document.getElementById('existing-list');
+  // Current group edit id — exclude self
+  const selfId=document.getElementById('txn-edit-id').value;
+  // Filter: same type, not group (no splits), not already linked, not self
+  let txns=DATA.transactions.filter(t=>{
+    if(t.id==selfId) return false;
+    if(linkedExistingIds.has(String(t.id))) return false;
+    if(t.type!==txnType) return false;
+    // exclude transactions that are already members of another group
+    if(t.groupParentId) return false;
+    if(query){
+      const q=query.toLowerCase();
+      return (t.desc||'').toLowerCase().includes(q)||(t.cat||'').toLowerCase().includes(q);
+    }
+    return true;
+  }).slice(0,40);
+
+  if(!txns.length){
+    list.innerHTML=`<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px">No matching transactions</div>`;
+    return;
+  }
+  list.innerHTML=txns.map(t=>`
+    <div onclick="linkExistingTxn('${t.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:7px;cursor:pointer;background:var(--bg4);border:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background='var(--bg5)'" onmouseout="this.style.background='var(--bg4)'">
+      <div style="min-width:0">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.emoji||'💸'} ${t.desc}</div>
+        <div style="font-size:10px;color:var(--text2)">${t.cat} · ${t.date}</div>
+      </div>
+      <div style="font-family:JetBrains Mono;font-size:12px;font-weight:700;color:${t.type==='income'?'#10b981':'#ef4444'};flex-shrink:0;margin-left:10px">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div>
+    </div>`).join('');
+}
+
+function filterExistingList(){
+  renderExistingList(document.getElementById('existing-search').value.trim());
+}
+
+function linkExistingTxn(txnId){
+  const t=DATA.transactions.find(x=>x.id==txnId);
+  if(!t) return;
+  linkedExistingIds.add(String(txnId));
+  // Add as a special linked row (not editable amount/cat — shows existing info)
+  addGroupRow({
+    amount:t.amount,
+    cat:t.cat,
+    desc:t.desc,
+    emoji:t.emoji||getCatEmoji(t.cat),
+    linkedTxnId:t.id   // mark as linked
+  });
+  // Refresh picker list to remove newly linked item
+  renderExistingList(document.getElementById('existing-search').value.trim());
+  toast(`"${t.desc}" linked ✓`,'info');
+}
+
+// Override addGroupRow to support linked rows
+const _origAddGroupRow=addGroupRow;
+// (redefined below — keep reference for splits loading)
+
+function addGroupRow(split=null){
+  const container=document.getElementById('group-items-container');
+  const rowId='grow-'+Date.now()+Math.floor(Math.random()*9999);
+  const cats=txnType==='income'?getIncomeCats():getExpenseCats();
+  const catOpts=cats.map(c=>`<option value="${c}"${split&&split.cat===c?' selected':''}>${c}</option>`).join('');
+  const div=document.createElement('div');
+  div.className='group-row';
+  div.id=rowId;
+
+  const isLinked=!!(split&&split.linkedTxnId);
+  if(split&&split.linkedTxnId) div.dataset.linkedId=split.linkedTxnId;
+
+  if(isLinked){
+    // Linked row — read-only display, can only remove link
+    div.style.cssText='display:flex;align-items:center;gap:8px;background:var(--bg3);padding:8px 10px;border-radius:8px;border:1px solid #4f8ef730';
+    div.innerHTML=`
+      <span style="font-size:14px">${split.emoji||'💸'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${split.desc}</div>
+        <div style="font-size:10px;color:var(--text2)">${split.cat}</div>
+      </div>
+      <span style="font-size:10px;padding:2px 6px;border-radius:6px;background:#4f8ef720;color:#4f8ef7;font-weight:600;flex-shrink:0">🔗 Linked</span>
+      <span style="font-family:JetBrains Mono;font-size:12px;font-weight:700;flex-shrink:0">${fmt(split.amount)}</span>
+      <input type="hidden" class="group-amt" value="${split.amount}">
+      <input type="hidden" class="group-desc" value="${split.desc}">
+      <select class="group-cat" style="display:none"><option value="${split.cat}" selected>${split.cat}</option></select>
+      <button class="btn btn-danger btn-sm" style="padding:5px 9px;font-size:13px;flex-shrink:0" onclick="unlinkGroupRow('${rowId}','${split.linkedTxnId}')">✕</button>
+    `;
+  } else {
+    // Normal editable row
+    div.style.cssText='display:grid;grid-template-columns:80px 1fr 1fr auto;gap:6px;align-items:center;background:var(--bg3);padding:8px 10px;border-radius:8px;border:1px solid var(--border)';
+    div.innerHTML=`
+      <input class="form-input group-amt" type="number" placeholder="৳ amt" min="0" value="${split?split.amount:''}" oninput="calcGroupTotal()" style="padding:6px 8px;font-size:12px;font-family:JetBrains Mono">
+      <input class="form-input group-desc" type="text" placeholder="description" value="${split?split.desc:''}" style="padding:6px 8px;font-size:12px">
+      <select class="form-input group-cat" style="padding:6px 8px;font-size:12px">${catOpts}</select>
+      <button class="btn btn-danger btn-sm" style="padding:5px 9px;font-size:13px;line-height:1" onclick="document.getElementById('${rowId}').remove();calcGroupTotal()">✕</button>
+    `;
+  }
+  container.appendChild(div);
+  calcGroupTotal();
+}
+
+function unlinkGroupRow(rowId,txnId){
+  document.getElementById(rowId).remove();
+  linkedExistingIds.delete(String(txnId));
+  calcGroupTotal();
+  renderExistingList(document.getElementById('existing-search').value.trim());
+}
+
+function loadGroupSplits(splits){
+  linkedExistingIds=new Set();
+  document.getElementById('group-items-container').innerHTML='';
+  splits.forEach(s=>{
+    if(s.linkedTxnId) linkedExistingIds.add(String(s.linkedTxnId));
+    addGroupRow(s);
+  });
 }
 </script>
 </body>
