@@ -742,6 +742,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <label class="form-label">Account Balance (৳)</label>
       <input class="form-input" type="number" id="edit-account-balance" placeholder="0" min="0">
     </div>
+    <div class="form-group" id="edit-account-number-group">
+      <label class="form-label" id="edit-account-number-label">📱 Mobile Number / Account Number</label>
+      <input class="form-input" type="text" id="edit-account-number" placeholder="e.g. 01XXXXXXXXX">
+    </div>
     <div class="form-group">
       <label class="form-label">Account Note (optional)</label>
       <input class="form-input" type="text" id="edit-account-note" placeholder="e.g. Main savings account">
@@ -749,7 +753,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <input type="hidden" id="edit-account-id">
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('edit-account')">Cancel</button>
-      <button class="btn btn-primary" style="flex:2" onclick="saveAccountBalance()">Save Balance</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveAccountBalance()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1875,10 +1879,22 @@ function renderAccountTxnList(accountId){
 function openEditAccount(id){
   ensureAccounts();
   const acc=DATA.accounts.find(a=>a.id===id);if(!acc)return;
-  document.getElementById('edit-account-title').textContent='Edit '+acc.name+' Balance';
+  document.getElementById('edit-account-title').textContent='Edit '+acc.name;
   document.getElementById('edit-account-id').value=id;
   document.getElementById('edit-account-balance').value=acc.balance;
   document.getElementById('edit-account-note').value=acc.note||'';
+  // Number field — cash account-এ hide করব
+  const numGroup=document.getElementById('edit-account-number-group');
+  const numInput=document.getElementById('edit-account-number');
+  const numLabel=document.getElementById('edit-account-number-label');
+  if(acc.type==='cash'){
+    numGroup.style.display='none';
+  } else {
+    numGroup.style.display='block';
+    numInput.value=acc.number||'';
+    if(acc.type==='mobile') numLabel.textContent='📱 Mobile Number';
+    else numLabel.textContent='🏦 Account Number';
+  }
   document.getElementById('modal-edit-account').classList.add('open');
 }
 
@@ -1886,11 +1902,17 @@ function saveAccountBalance(){
   const id=document.getElementById('edit-account-id').value;
   const bal=parseFloat(document.getElementById('edit-account-balance').value);
   const note=document.getElementById('edit-account-note').value.trim();
+  const numEl=document.getElementById('edit-account-number');
+  const number=numEl?numEl.value.trim():'';
   if(isNaN(bal)||bal<0){toast('Enter a valid balance','error');return}
   ensureAccounts();
   const idx=DATA.accounts.findIndex(a=>a.id===id);
-  if(idx!==-1){DATA.accounts[idx].balance=bal;DATA.accounts[idx].note=note;}
-  saveData();closeModal('edit-account');renderAccountsPage();toast('Balance updated ✓');
+  if(idx!==-1){
+    DATA.accounts[idx].balance=bal;
+    DATA.accounts[idx].note=note;
+    if(DATA.accounts[idx].type!=='cash') DATA.accounts[idx].number=number;
+  }
+  saveData();closeModal('edit-account');renderAccountsPage();toast('Account updated ✓');
 }
 
 function openTransferModal(){
