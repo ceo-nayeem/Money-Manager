@@ -1015,19 +1015,45 @@ function populateCatSelect(id,cats,selected=null){
       emoji:'📦', account:accountId2, splits,
       ...(isLR2&&{person:person2,paidAmount:oldTxnG?(oldTxnG.paidAmount||0):0,status:oldTxnG?(oldTxnG.paidAmount>=groupTotal?'settled':oldTxnG.status||'pending'):'pending'})
     };
-    if(editId&&accountId2){
+    if(editId){
       ensureAccounts();
       const oldT=DATA.transactions.find(t=>t.id==editId);
-      if(oldT&&oldT.account){
-        const oIdx=DATA.accounts.findIndex(a=>a.id===oldT.account);
-        if(oIdx!==-1){if(oldT.type==='income')DATA.accounts[oIdx].balance-=oldT.amount;else if(oldT.type==='expense')DATA.accounts[oIdx].balance+=oldT.amount;}
+      // Revert old balance effects (per-split if old was a group, else parent account)
+      if(oldT){
+        if(oldT.splits&&oldT.splits.length>0){
+          oldT.splits.forEach(s=>{
+            const sAcc=s.account||oldT.account||'cash';
+            const oIdx=DATA.accounts.findIndex(a=>a.id===sAcc);
+            if(oIdx!==-1){
+              if(oldT.type==='income') DATA.accounts[oIdx].balance-=s.amount;
+              else if(oldT.type==='expense') DATA.accounts[oIdx].balance+=s.amount;
+            }
+          });
+        } else if(oldT.account){
+          const oIdx=DATA.accounts.findIndex(a=>a.id===oldT.account);
+          if(oIdx!==-1){if(oldT.type==='income')DATA.accounts[oIdx].balance-=oldT.amount;else if(oldT.type==='expense')DATA.accounts[oIdx].balance+=oldT.amount;}
+        }
       }
-      const nIdx=DATA.accounts.findIndex(a=>a.id===accountId2);
-      if(nIdx!==-1){if(type==='income')DATA.accounts[nIdx].balance+=groupTotal;else if(type==='expense')DATA.accounts[nIdx].balance-=groupTotal;}
-    } else if(!editId&&accountId2){
+      // Apply new balance per split
+      splits.forEach(s=>{
+        const sAcc=s.account||accountId2||'cash';
+        const nIdx=DATA.accounts.findIndex(a=>a.id===sAcc);
+        if(nIdx!==-1){
+          if(type==='income') DATA.accounts[nIdx].balance+=s.amount;
+          else if(type==='expense') DATA.accounts[nIdx].balance-=s.amount;
+        }
+      });
+    } else {
+      // New group transaction: update per-split account
       ensureAccounts();
-      const nIdx=DATA.accounts.findIndex(a=>a.id===accountId2);
-      if(nIdx!==-1){if(type==='income')DATA.accounts[nIdx].balance+=groupTotal;else if(type==='expense')DATA.accounts[nIdx].balance-=groupTotal;}
+      splits.forEach(s=>{
+        const sAcc=s.account||accountId2||'cash';
+        const nIdx=DATA.accounts.findIndex(a=>a.id===sAcc);
+        if(nIdx!==-1){
+          if(type==='income') DATA.accounts[nIdx].balance+=s.amount;
+          else if(type==='expense') DATA.accounts[nIdx].balance-=s.amount;
+        }
+      });
     }
     // Mark linked existing txns with groupParentId; unmark previously linked ones
     if(editId){
@@ -1130,14 +1156,26 @@ function deleteTxn(id){
     });
   }
   // Revert account balance effect
-  if(txn&&txn.account){
+  if(txn){
     ensureAccounts();
-    const accIdx=DATA.accounts.findIndex(a=>a.id===txn.account);
-    if(accIdx!==-1){
-      if(txn.type==='income')        DATA.accounts[accIdx].balance-=txn.amount;
-      else if(txn.type==='expense')  DATA.accounts[accIdx].balance+=txn.amount;
-      else if(txn.type==='liability') DATA.accounts[accIdx].balance-=txn.amount;
-      else if(txn.type==='receivable') DATA.accounts[accIdx].balance+=txn.amount;
+    if(txn.splits&&txn.splits.length>0){
+      // Group transaction: revert per-split balances
+      txn.splits.forEach(s=>{
+        const sAcc=s.account||txn.account||'cash';
+        const accIdx=DATA.accounts.findIndex(a=>a.id===sAcc);
+        if(accIdx!==-1){
+          if(txn.type==='income')        DATA.accounts[accIdx].balance-=s.amount;
+          else if(txn.type==='expense')  DATA.accounts[accIdx].balance+=s.amount;
+        }
+      });
+    } else if(txn.account){
+      const accIdx=DATA.accounts.findIndex(a=>a.id===txn.account);
+      if(accIdx!==-1){
+        if(txn.type==='income')        DATA.accounts[accIdx].balance-=txn.amount;
+        else if(txn.type==='expense')  DATA.accounts[accIdx].balance+=txn.amount;
+        else if(txn.type==='liability') DATA.accounts[accIdx].balance-=txn.amount;
+        else if(txn.type==='receivable') DATA.accounts[accIdx].balance+=txn.amount;
+      }
     }
   }
   DATA.transactions=DATA.transactions.filter(t=>t.id!=id);
