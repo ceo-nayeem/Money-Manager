@@ -343,6 +343,11 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <div class="form-group"><label class="form-label">User ID</label><input class="form-input" type="text" id="login-userid" placeholder="Enter your user ID" autocomplete="username"></div>
     <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"></div>
     <button class="login-btn" onclick="attemptLogin()">Sign In →</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0"><div style="flex:1;height:1px;background:var(--border2)"></div><span style="font-size:10.5px;color:var(--text3);letter-spacing:0.5px">OR</span><div style="flex:1;height:1px;background:var(--border2)"></div></div>
+    <button class="login-btn" id="google-signin-btn" style="background:#fff;color:#1f1f1f;display:flex;align-items:center;justify-content:center;gap:10px" onclick="signInWithGoogle()">
+      <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.3-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.8 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5c-7.5 0-14 4.2-17.3 10.4z"/><path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.6c-2.1 1.5-4.7 2.4-7.6 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.7 5.1C9.9 40.2 16.4 44.5 24 44.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.9 2.5-2.5 4.6-4.7 6.1l6.6 5.6C40.9 36.6 44.5 30.9 44.5 24c0-1.2-.1-2.4-.3-3.5z"/></svg>
+      Continue with Google
+    </button>
     <div class="login-footer">🔒 Private &amp; secure · Only you can access this</div>
   </div>
 </div>
@@ -2047,7 +2052,112 @@ function logout(){
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
   closeSidebar&&closeSidebar();
+  // Also sign out of Google if that's how the user logged in
+  if (auth && auth.currentUser) {
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js').then(({ signOut }) => {
+      signOut(auth).catch(()=>{});
+    });
+  }
+  DOC_PATH = LEGACY_DOC_PATH;
 }
+
+// ─── Google Sign-In ───────────────────────────────────────────────────────
+async function ensureAuth() {
+  if (auth) return auth;
+  const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+  if (!firebaseApp) {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    firebaseApp = initializeApp(firebaseConfig);
+  }
+  auth = getAuth(firebaseApp);
+  return auth;
+}
+
+async function signInWithGoogle(){
+  const btn = document.getElementById('google-signin-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.classList.remove('show');
+  try {
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
+    const { GoogleAuthProvider, signInWithPopup } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+    await ensureAuth();
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    await onGoogleLoginSuccess(result.user);
+  } catch (e) {
+    console.warn('Google sign-in error:', e);
+    errEl.textContent = 'Google sign-in failed. Please try again.';
+    errEl.classList.add('show');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  }
+}
+
+async function onGoogleLoginSuccess(user){
+  // Give this Google account its own isolated cloud document
+  DOC_PATH = 'users/google_' + user.uid;
+  sessionStorage.setItem('finvault_logged_in', '1');
+  sessionStorage.setItem('finvault_google_uid', user.uid);
+  document.getElementById('login-screen').style.display = 'none';
+  const n = user.displayName || DATA.profile.name || 'User';
+  document.getElementById('user-name-display').textContent = n;
+  document.getElementById('user-avatar').textContent = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  // Reload data scoped to this Google account
+  await reloadFirestoreForCurrentDoc();
+  renderAll();
+  toast('Signed in as ' + n + ' ✓', 'success');
+}
+
+// Reloads Firestore data + live listener for whatever DOC_PATH currently points to
+async function reloadFirestoreForCurrentDoc(){
+  try {
+    const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    const docRef = doc(db, DOC_PATH);
+    const snap = await getDoc(docRef);
+    if (snap.exists() && snap.data() && snap.data().transactions) {
+      DATA = snap.data();
+      syncCatsFromData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    } else {
+      // Brand-new account — start with a fresh, empty dataset and upload it
+      DATA = getDefaultData();
+      syncCatsFromData();
+      await setDoc(docRef, DATA);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    }
+    onSnapshot(docRef, (snap) => {
+      if (firebaseSyncing) return;
+      if (snap.exists()) {
+        const remote = snap.data();
+        if (remote && remote.transactions) {
+          DATA = remote;
+          syncCatsFromData();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+          renderAll();
+        }
+      }
+    }, (err) => console.warn('Firestore listener error:', err));
+  } catch (e) {
+    console.warn('Firestore reload error:', e);
+  }
+}
+
+// On page load, check if a Google session is already active (auto-login)
+async function checkGoogleAutoLogin(){
+  try {
+    await ensureAuth();
+    const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+    onAuthStateChanged(auth, async (user) => {
+      if (user && sessionStorage.getItem('finvault_google_uid') === user.uid) {
+        await onGoogleLoginSuccess(user);
+      }
+    });
+  } catch (e) {
+    console.warn('Google auto-login check failed:', e);
+  }
+}
+window.addEventListener('load', () => { checkGoogleAutoLogin(); });
 
 
 let currentCatTab = 'expense';
@@ -2144,12 +2254,17 @@ const firebaseConfig = {
 
 // Firestore document reference (one doc per user, using a fixed device key)
 let db = null;
+let firebaseApp = null;
+let auth = null;
 const DEVICE_KEY = localStorage.getItem('finvault_device_key') || (() => {
   const k = 'dev_' + Math.random().toString(36).slice(2, 10);
   localStorage.setItem('finvault_device_key', k);
   return k;
 })();
-const DOC_PATH = "users/global_data";
+// Legacy shared document (used only for the old User ID / Password login)
+const LEGACY_DOC_PATH = "users/global_data";
+// Active document path — switches to a per-Google-account path after Google sign-in
+let DOC_PATH = LEGACY_DOC_PATH;
 
 let firebaseSyncing = false;
 
@@ -2157,8 +2272,8 @@ async function initFirebase() {
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
     const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    firebaseApp = initializeApp(firebaseConfig);
+    db = getFirestore(firebaseApp);
     const docRef = doc(db, DOC_PATH);
 
     // Try to load from Firestore first
