@@ -461,7 +461,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       Admin Panel
     </div>
     <div class="sidebar-footer">
-      <div class="user-info" onclick="openModal('profile')">
+      <div class="user-info" onclick="switchPage('profile');closeSidebar()">
         <div class="avatar" id="user-avatar">AR</div>
         <div>
           <div class="user-name" id="user-name-display">Arif Rahman</div>
@@ -598,6 +598,42 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
           <div class="card-header"><span class="card-title">All Users</span></div>
           <div style="font-size:12px;color:var(--text3);padding:0 0 12px">Manage who can access FinVault, block accounts, restrict features, and set limits. This never touches anyone's transaction data.</div>
           <div id="admin-users-list">Loading users…</div>
+        </div>
+      </div>
+      <!-- PROFILE -->
+      <div class="page" id="page-profile">
+        <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div class="avatar" id="profile-page-avatar" style="width:64px;height:64px;font-size:22px">AR</div>
+          <div style="flex:1;min-width:180px">
+            <div id="profile-page-name" style="font-size:19px;font-weight:700">—</div>
+            <div id="profile-page-email" style="font-size:12.5px;color:var(--text3);margin-top:2px">—</div>
+            <div style="margin-top:6px" id="profile-page-badges"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Personal Information</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+            <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="pf-name" placeholder="Your name"></div>
+            <div class="form-group" id="pf-phone-group"><label class="form-label">Phone Number</label><input class="form-input" type="tel" id="pf-phone" placeholder="e.g. 01XXXXXXXXX"></div>
+            <div class="form-group" id="pf-job-group" style="grid-column:1/-1"><label class="form-label">Job / Business Details</label><input class="form-input" type="text" id="pf-job" placeholder="e.g. Job title, company, or business"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Financial Settings</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+            <div class="form-group"><label class="form-label">Opening Balance (৳)</label><input class="form-input" type="number" id="pf-balance" placeholder="0"></div>
+            <div class="form-group"><label class="form-label" style="opacity:0.6">Member Since</label><input class="form-input" type="text" id="pf-created" disabled style="opacity:0.6"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveProfilePage()" style="margin-bottom:20px">💾 Save Profile</button>
+
+        <div class="card" id="pf-danger-zone" style="border:1px solid var(--red);display:none">
+          <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
+          <div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">Permanently delete your account and all of your data (transactions, budgets, goals, investments). This cannot be undone.</div>
+          <button class="btn btn-danger" onclick="deleteMyAccount()">🗑️ Delete My Account</button>
         </div>
       </div>
     </div>
@@ -1416,6 +1452,87 @@ function saveProfile(){
   document.getElementById('user-avatar').textContent=n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   saveData();closeModal('profile');renderAll();toast('Profile saved ✓');
 }
+
+// ─── Full Profile Page ─────────────────────────────────────────────────────
+function renderProfilePage(){
+  const isOwnerLogin = currentUserMeta && currentUserMeta.uid === 'owner';
+  const isGoogleUser = !isOwnerLogin;
+  const p = (currentUserMeta && currentUserMeta.profile) || {};
+  const n = p.name || DATA.profile.name || 'User';
+  const initials = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+  document.getElementById('profile-page-avatar').textContent = initials;
+  document.getElementById('profile-page-name').textContent = n;
+  document.getElementById('profile-page-email').textContent = (currentUserMeta && currentUserMeta.email) || (isOwnerLogin ? 'Owner login (User ID / Password)' : '');
+
+  const badges = [];
+  if (currentUserMeta) badges.push(`<span class="badge" style="background:var(--accent2);color:#fff;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;text-transform:capitalize;margin-right:6px">${currentUserMeta.role}</span>`);
+  document.getElementById('profile-page-badges').innerHTML = badges.join('');
+
+  document.getElementById('pf-name').value = n;
+  document.getElementById('pf-phone').value = p.phone || '';
+  document.getElementById('pf-job').value = p.occupation || '';
+  document.getElementById('pf-balance').value = DATA.profile.openingBalance || 0;
+  document.getElementById('pf-created').value = currentUserMeta && currentUserMeta.createdAt ? new Date(currentUserMeta.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+
+  // Owner/legacy login has no phone/job concept and can't delete the master account
+  document.getElementById('pf-phone-group').style.display = isGoogleUser ? '' : 'none';
+  document.getElementById('pf-job-group').style.display = isGoogleUser ? '' : 'none';
+  document.getElementById('pf-danger-zone').style.display = (isGoogleUser && currentUserMeta && currentUserMeta.role !== 'admin') ? '' : 'none';
+}
+
+async function saveProfilePage(){
+  const name = document.getElementById('pf-name').value.trim();
+  if (!name) { toast('Name cannot be empty', 'error'); return; }
+  DATA.profile.name = name;
+  DATA.profile.openingBalance = parseFloat(document.getElementById('pf-balance').value) || 0;
+  document.getElementById('user-name-display').textContent = name;
+  document.getElementById('user-avatar').textContent = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  saveData();
+
+  const isOwnerLogin = currentUserMeta && currentUserMeta.uid === 'owner';
+  if (!isOwnerLogin && currentUserMeta) {
+    const phone = document.getElementById('pf-phone').value.trim();
+    const occupation = document.getElementById('pf-job').value.trim();
+    try {
+      const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      if (!db) db = getFirestore(firebaseApp);
+      const profile = { name, phone, occupation };
+      await updateDoc(doc(db, 'user_meta', currentUserMeta.uid), { profile });
+      currentUserMeta.profile = profile;
+    } catch (e) {
+      console.warn('saveProfilePage meta update error:', e);
+    }
+  }
+  renderProfilePage();
+  renderAll();
+  toast('Profile saved ✓');
+}
+
+async function deleteMyAccount(){
+  if (!currentUserMeta || currentUserMeta.uid === 'owner' || currentUserMeta.role === 'admin') {
+    toast('This account cannot be self-deleted', 'error');
+    return;
+  }
+  if (!confirm('This will permanently delete your account and ALL your data (transactions, budgets, goals, investments). This cannot be undone. Continue?')) return;
+  const typed = prompt('Type DELETE to confirm you want to permanently remove your account:');
+  if (typed !== 'DELETE') { toast('Account deletion cancelled', 'info'); return; }
+
+  try {
+    const { getFirestore, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    await deleteDoc(doc(db, 'users', 'google_' + currentUserMeta.uid));
+    await deleteDoc(doc(db, 'user_meta', currentUserMeta.uid));
+  } catch (e) {
+    console.warn('deleteMyAccount error:', e);
+    toast('Failed to delete account. Please try again.', 'error');
+    return;
+  }
+
+  localStorage.removeItem(STORAGE_KEY);
+  toast('Account deleted', 'info');
+  logout();
+}
 document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
   item.addEventListener('click',()=>{switchPage(item.dataset.page);closeSidebar()});
 });
@@ -1430,7 +1547,7 @@ function switchPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
-  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],admin:['Admin Panel','Manage users, access & limits']};
+  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],admin:['Admin Panel','Manage users, access & limits'],profile:['My Profile','Manage your personal information']};
   const t=titles[page]||[page,''];
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
@@ -1792,6 +1909,7 @@ function renderPageContent(page){
   else if(page==='reports')renderReportsPage();
   else if(page==='accounts')renderAccountsPage();
   else if(page==='admin')renderAdminPanel();
+  else if(page==='profile')renderProfilePage();
 }
 
 // ══════════════════════════════════════════════
@@ -2571,7 +2689,7 @@ const firebaseConfig = {
 // Put YOUR OWN Gmail address here. Whoever logs in with this email becomes
 // the Admin automatically and gets the Admin Panel. Everyone else who signs
 // in with Google becomes a normal restricted-by-default "user".
-const ADMIN_EMAILS = ["handle.devsorbit@gmail.com"];
+const ADMIN_EMAILS = ["YOUR_EMAIL@gmail.com"];
 
 // Holds the logged-in user's role/limits/restrictions once known
 let currentUserMeta = null; // { uid, email, name, role, blocked, limits:{maxTransactions}, restrictions:{disabledPages:[]} }
