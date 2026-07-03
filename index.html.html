@@ -334,11 +334,11 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo">
-      <div class="login-logo-mark">FinVault</div>
-      <div class="login-logo-sub">Money Manager</div>
+      <div class="login-logo-mark" id="login-logo-mark">FinVault</div>
+      <div class="login-logo-sub" id="login-logo-sub">Money Manager</div>
     </div>
-    <div class="login-title">Welcome back</div>
-    <div class="login-sub">Sign in to access your dashboard</div>
+    <div class="login-title" id="login-title-text">Welcome back</div>
+    <div class="login-sub" id="login-sub-text">Sign in to access your dashboard</div>
     <div class="login-error" id="login-error">Invalid User ID or Password. Please try again.</div>
     <div class="form-group"><label class="form-label">User ID</label><input class="form-input" type="text" id="login-userid" placeholder="Enter your user ID" autocomplete="username"></div>
     <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"></div>
@@ -358,6 +358,23 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <div class="login-title">Account Blocked</div>
     <div class="login-sub">Your access to this app has been restricted by the admin. Please contact support if you think this is a mistake.</div>
     <button class="login-btn btn-danger" style="margin-top:16px" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="login-screen" id="onboarding-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-mark">Welcome 👋</div>
+      <div class="login-logo-sub">Just a few quick details</div>
+    </div>
+    <div class="login-title">Complete your profile</div>
+    <div class="login-sub">This helps us set up your account properly</div>
+    <div class="login-error" id="onboarding-error">Please fill in all required fields.</div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="onboard-name" placeholder="Your full name"></div>
+    <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" type="tel" id="onboard-phone" placeholder="e.g. 01XXXXXXXXX"></div>
+    <div class="form-group"><label class="form-label">Job / Business Details</label><input class="form-input" type="text" id="onboard-job" placeholder="e.g. Job title, company, or business"></div>
+    <button class="login-btn" id="onboard-submit-btn" onclick="submitOnboarding()">Continue →</button>
+    <div class="login-footer">🔒 Only visible to you and the admin</div>
   </div>
 </div>
 
@@ -400,8 +417,8 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="logo">
-      <div class="logo-mark">FinVault</div>
-      <div class="logo-sub">Money Manager</div>
+      <div class="logo-mark" id="sidebar-logo-mark">FinVault</div>
+      <div class="logo-sub" id="sidebar-logo-sub">Money Manager</div>
     </div>
     <span class="nav-section">Overview</span>
     <div class="nav-item active" data-page="dashboard">
@@ -576,6 +593,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       </div>
       <!-- ADMIN PANEL -->
       <div class="page" id="page-admin">
+        <div id="admin-branding-section"></div>
         <div class="card" style="margin-bottom:16px">
           <div class="card-header"><span class="card-title">All Users</span></div>
           <div style="font-size:12px;color:var(--text3);padding:0 0 12px">Manage who can access FinVault, block accounts, restrict features, and set limits. This never touches anyone's transaction data.</div>
@@ -2092,9 +2110,11 @@ function logout(){
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('blocked-screen').style.display='none';
+  document.getElementById('onboarding-screen').style.display='none';
   closeSidebar&&closeSidebar();
   sessionStorage.removeItem('finvault_google_uid');
   currentUserMeta=null;
+  pendingOnboardUser=null; pendingOnboardMeta=null;
   // Also sign out of Google if that's how the user logged in
   if (auth && auth.currentUser) {
     import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js').then(({ signOut }) => {
@@ -2136,6 +2156,9 @@ async function signInWithGoogle(){
   }
 }
 
+let pendingOnboardUser = null;
+let pendingOnboardMeta = null;
+
 async function onGoogleLoginSuccess(user){
   // Give this Google account its own isolated cloud document
   DOC_PATH = 'users/google_' + user.uid;
@@ -2145,21 +2168,71 @@ async function onGoogleLoginSuccess(user){
     showBlockedScreen();
     return;
   }
-  currentUserMeta = meta;
+  if (meta && !meta.onboarded) {
+    pendingOnboardUser = user;
+    pendingOnboardMeta = meta;
+    showOnboardingScreen(user);
+    return;
+  }
+  await finalizeGoogleLogin(user, meta);
+}
 
+async function finalizeGoogleLogin(user, meta){
+  currentUserMeta = meta;
   sessionStorage.setItem('finvault_logged_in', '1');
   sessionStorage.setItem('finvault_google_uid', user.uid);
   document.getElementById('login-screen').style.display = 'none';
-  const n = user.displayName || DATA.profile.name || 'User';
+  document.getElementById('onboarding-screen').style.display = 'none';
+  const n = (meta.profile && meta.profile.name) || user.displayName || DATA.profile.name || 'User';
   document.getElementById('user-name-display').textContent = n;
   document.getElementById('user-avatar').textContent = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   // Reload data scoped to this Google account (admin's very first login migrates
   // their existing data over instead of starting empty)
   const isFirstLoginMigration = !!(meta && meta._isNew && meta.role === 'admin');
   await reloadFirestoreForCurrentDoc(isFirstLoginMigration);
+  if (meta.profile && meta.profile.name) { DATA.profile.name = meta.profile.name; saveData(); }
   applyRoleRestrictions();
   renderAll();
   toast('Signed in as ' + n + ' ✓', 'success');
+}
+
+function showOnboardingScreen(user){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'flex';
+  document.getElementById('onboard-name').value = user.displayName || '';
+  document.getElementById('onboard-phone').value = '';
+  document.getElementById('onboard-job').value = '';
+  document.getElementById('onboarding-error').classList.remove('show');
+}
+
+async function submitOnboarding(){
+  const name = document.getElementById('onboard-name').value.trim();
+  const phone = document.getElementById('onboard-phone').value.trim();
+  const job = document.getElementById('onboard-job').value.trim();
+  const errEl = document.getElementById('onboarding-error');
+  if (!name || !phone) {
+    errEl.textContent = 'Please enter your name and phone number.';
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  const btn = document.getElementById('onboard-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    const profile = { name, phone, occupation: job };
+    await updateDoc(doc(db, 'user_meta', pendingOnboardUser.uid), { profile, onboarded: true });
+    pendingOnboardMeta = { ...pendingOnboardMeta, profile, onboarded: true };
+    await finalizeGoogleLogin(pendingOnboardUser, pendingOnboardMeta);
+    pendingOnboardUser = null; pendingOnboardMeta = null;
+  } catch (e) {
+    console.warn('submitOnboarding error:', e);
+    errEl.textContent = 'Could not save. Please try again.';
+    errEl.classList.add('show');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Continue →'; }
+  }
 }
 
 // Creates/reads this user's role & permission document (user_meta/<uid>)
@@ -2172,7 +2245,7 @@ async function syncUserMeta(user){
     if (snap.exists()) {
       const data = snap.data();
       updateDoc(metaRef, { lastLogin: Date.now(), name: user.displayName || data.name || '', email: user.email || data.email || '' }).catch(()=>{});
-      return { uid: user.uid, ...data, _isNew: false };
+      return { uid: user.uid, ...data, onboarded: data.onboarded !== undefined ? data.onboarded : true, _isNew: false };
     }
     const isAdmin = ADMIN_EMAILS.includes(user.email);
     const fresh = {
@@ -2181,6 +2254,8 @@ async function syncUserMeta(user){
       name: user.displayName || '',
       role: isAdmin ? 'admin' : 'user',
       blocked: false,
+      onboarded: false,
+      profile: { name: user.displayName || '', phone: '', occupation: '' },
       limits: { maxTransactions: null },
       restrictions: { disabledPages: [] },
       createdAt: Date.now(),
@@ -2191,7 +2266,7 @@ async function syncUserMeta(user){
   } catch (e) {
     console.warn('syncUserMeta error:', e);
     // Fail open as a normal unrestricted user rather than locking the app
-    return { uid: user.uid, role: 'user', blocked: false, limits: { maxTransactions: null }, restrictions: { disabledPages: [] }, _isNew: false };
+    return { uid: user.uid, role: 'user', blocked: false, onboarded: true, profile: { name: user.displayName||'', phone:'', occupation:'' }, limits: { maxTransactions: null }, restrictions: { disabledPages: [] }, _isNew: false };
   }
 }
 
@@ -2234,6 +2309,8 @@ async function renderAdminPanel(){
     return;
   }
   listEl.innerHTML = 'Loading users…';
+  const brandingEl = document.getElementById('admin-branding-section');
+  if (brandingEl) brandingEl.innerHTML = renderAdminBrandingForm();
   try {
     const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
     if (!db) db = getFirestore(firebaseApp);
@@ -2258,7 +2335,8 @@ function renderAdminUserRow(u){
   const blocked = !!u.blocked;
   const maxTxn = (u.limits && u.limits.maxTransactions != null) ? u.limits.maxTransactions : '';
   const disabledPages = (u.restrictions && u.restrictions.disabledPages) || [];
-  const initials = (u.name || u.email || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const profile = u.profile || { name:'', phone:'', occupation:'' };
+  const initials = (profile.name || u.name || u.email || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   const pageChecks = ADMIN_TOGGLEABLE_PAGES.map(p => `
     <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);cursor:pointer">
       <input type="checkbox" data-uid="${u.uid}" data-page="${p.key}" class="admin-page-toggle" ${disabledPages.includes(p.key)?'checked':''} ${role==='admin'?'disabled':''}>
@@ -2270,8 +2348,9 @@ function renderAdminUserRow(u){
       <div style="display:flex;align-items:center;gap:10px">
         <div class="avatar" style="width:34px;height:34px;font-size:12px">${initials}</div>
         <div>
-          <div style="font-size:13px;font-weight:600">${u.name || '(no name)'} ${isSelf?'<span style="font-size:10px;color:var(--accent)">(you)</span>':''}</div>
-          <div style="font-size:11.5px;color:var(--text3)">${u.email || ''} · <span style="text-transform:capitalize">${role}</span> ${blocked?'· <span style="color:var(--red)">Blocked</span>':''}</div>
+          <div style="font-size:13px;font-weight:600">${profile.name || u.name || '(not onboarded yet)'} ${isSelf?'<span style="font-size:10px;color:var(--accent)">(you)</span>':''}</div>
+          <div style="font-size:11.5px;color:var(--text3)">${u.email || ''} · <span style="text-transform:capitalize">${role}</span> ${blocked?'· <span style="color:var(--red)">Blocked</span>':''} ${profile.phone?' · '+profile.phone:''}</div>
+          ${profile.occupation ? `<div style="font-size:11px;color:var(--text3);margin-top:1px">💼 ${profile.occupation}</div>` : ''}
         </div>
       </div>
       ${role==='admin' ? '' : `
@@ -2281,9 +2360,11 @@ function renderAdminUserRow(u){
     </div>
     ${role==='admin' ? '' : `
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <label style="font-size:11.5px;color:var(--text2);white-space:nowrap">Max transactions:</label>
-        <input type="number" min="0" placeholder="Unlimited" value="${maxTxn}" id="admin-max-${u.uid}" class="form-input" style="max-width:110px;padding:6px 8px;font-size:12px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:10px">
+        <div><label style="font-size:11px;color:var(--text3)">Name</label><input class="form-input" id="admin-name-${u.uid}" value="${profile.name||''}" style="padding:6px 8px;font-size:12px"></div>
+        <div><label style="font-size:11px;color:var(--text3)">Phone</label><input class="form-input" id="admin-phone-${u.uid}" value="${profile.phone||''}" style="padding:6px 8px;font-size:12px"></div>
+        <div><label style="font-size:11px;color:var(--text3)">Job / Business</label><input class="form-input" id="admin-job-${u.uid}" value="${profile.occupation||''}" style="padding:6px 8px;font-size:12px"></div>
+        <div><label style="font-size:11px;color:var(--text3)">Max transactions</label><input type="number" min="0" placeholder="Unlimited" value="${maxTxn}" id="admin-max-${u.uid}" class="form-input" style="padding:6px 8px;font-size:12px"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:10px">
         ${pageChecks}
@@ -2311,13 +2392,18 @@ async function adminSaveUserSettings(uid){
     const maxInput = document.getElementById('admin-max-' + uid);
     const maxVal = maxInput && maxInput.value !== '' ? parseInt(maxInput.value, 10) : null;
     const disabledPages = Array.from(document.querySelectorAll(`.admin-page-toggle[data-uid="${uid}"]:checked`)).map(el => el.dataset.page);
+    const name = (document.getElementById('admin-name-' + uid) || {}).value || '';
+    const phone = (document.getElementById('admin-phone-' + uid) || {}).value || '';
+    const occupation = (document.getElementById('admin-job-' + uid) || {}).value || '';
     const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
     if (!db) db = getFirestore(firebaseApp);
     await updateDoc(doc(db, 'user_meta', uid), {
+      profile: { name: name.trim(), phone: phone.trim(), occupation: occupation.trim() },
       limits: { maxTransactions: (maxVal === null || isNaN(maxVal)) ? null : maxVal },
       restrictions: { disabledPages }
     });
     toast('Settings saved ✓', 'success');
+    renderAdminPanel();
   } catch (e) {
     console.warn('adminSaveUserSettings error:', e);
     toast('Failed to save settings', 'error');
@@ -2577,7 +2663,96 @@ window.saveData = async function() {
 // Init Firebase after page loads
 window.addEventListener('load', () => {
   initFirebase();
+  loadAppConfig();
 });
+
+// ─── Global App Branding/Config (editable by Admin, applies to everyone) ──
+const APP_CONFIG_DOC = 'app_config/global';
+let currentAppConfig = null;
+
+async function loadAppConfig(){
+  try {
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!firebaseApp) {
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      firebaseApp = initializeApp(firebaseConfig);
+    }
+    if (!db) db = getFirestore(firebaseApp);
+    const snap = await getDoc(doc(db, APP_CONFIG_DOC));
+    if (snap.exists()) {
+      currentAppConfig = snap.data();
+      applyAppConfig(currentAppConfig);
+    }
+  } catch (e) {
+    console.warn('loadAppConfig error:', e);
+  }
+}
+
+function applyAppConfig(cfg){
+  if (!cfg) return;
+  if (cfg.appName) {
+    document.title = cfg.appName;
+    const a = document.getElementById('sidebar-logo-mark'); if (a) a.textContent = cfg.appName;
+    const b = document.getElementById('login-logo-mark'); if (b) b.textContent = cfg.appName;
+  }
+  if (cfg.tagline) {
+    const a = document.getElementById('sidebar-logo-sub'); if (a) a.textContent = cfg.tagline;
+    const b = document.getElementById('login-logo-sub'); if (b) b.textContent = cfg.tagline;
+  }
+  if (cfg.loginTitle) { const el = document.getElementById('login-title-text'); if (el) el.textContent = cfg.loginTitle; }
+  if (cfg.loginSubtitle) { const el = document.getElementById('login-sub-text'); if (el) el.textContent = cfg.loginSubtitle; }
+  if (cfg.accentColor) {
+    document.documentElement.style.setProperty('--accent', cfg.accentColor);
+  }
+  if (cfg.logoImageUrl) {
+    ['sidebar-logo-mark','login-logo-mark'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.querySelector('img')) {
+        el.innerHTML = `<img src="${cfg.logoImageUrl}" alt="logo" style="max-height:32px;max-width:160px;-webkit-text-fill-color:initial">`;
+      }
+    });
+  }
+}
+
+async function adminSaveAppConfig(){
+  try {
+    const cfg = {
+      appName: document.getElementById('cfg-app-name').value.trim(),
+      tagline: document.getElementById('cfg-tagline').value.trim(),
+      loginTitle: document.getElementById('cfg-login-title').value.trim(),
+      loginSubtitle: document.getElementById('cfg-login-subtitle').value.trim(),
+      accentColor: document.getElementById('cfg-accent-color').value,
+      logoImageUrl: document.getElementById('cfg-logo-url').value.trim()
+    };
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    await setDoc(doc(db, APP_CONFIG_DOC), cfg, { merge: true });
+    currentAppConfig = { ...(currentAppConfig||{}), ...cfg };
+    applyAppConfig(currentAppConfig);
+    toast('Saved for all users ✓', 'success');
+  } catch (e) {
+    console.warn('adminSaveAppConfig error:', e);
+    toast('Failed to save branding', 'error');
+  }
+}
+
+function renderAdminBrandingForm(){
+  const cfg = currentAppConfig || {};
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-title">Site Branding &amp; Design</span></div>
+    <div style="font-size:12px;color:var(--text3);padding:0 0 14px">Edit the app name, colors, and login screen text. Saving applies instantly for every user — no transaction data is touched.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">App Name</label><input class="form-input" id="cfg-app-name" value="${cfg.appName||'FinVault'}"></div>
+      <div class="form-group"><label class="form-label">Tagline</label><input class="form-input" id="cfg-tagline" value="${cfg.tagline||'Money Manager'}"></div>
+      <div class="form-group"><label class="form-label">Login Title</label><input class="form-input" id="cfg-login-title" value="${cfg.loginTitle||'Welcome back'}"></div>
+      <div class="form-group"><label class="form-label">Login Subtitle</label><input class="form-input" id="cfg-login-subtitle" value="${cfg.loginSubtitle||'Sign in to access your dashboard'}"></div>
+      <div class="form-group"><label class="form-label">Accent Color</label><input class="form-input" type="color" id="cfg-accent-color" value="${cfg.accentColor||'#4f8ef7'}" style="height:40px;padding:4px"></div>
+      <div class="form-group"><label class="form-label">Logo Image URL (optional)</label><input class="form-input" id="cfg-logo-url" placeholder="https://..." value="${cfg.logoImageUrl||''}"></div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:6px" onclick="adminSaveAppConfig()">💾 Save for All Users</button>
+  </div>`;
+}
 
 // ══ GROUP TRANSACTION FUNCTIONS ══════════════════════════════════════════════
 function toggleGroupSection(){
