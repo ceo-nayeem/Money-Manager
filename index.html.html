@@ -352,6 +352,15 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
   </div>
 </div>
 
+<div class="login-screen" id="blocked-screen" style="display:none">
+  <div class="login-box" style="text-align:center">
+    <div style="font-size:42px;margin-bottom:10px">🚫</div>
+    <div class="login-title">Account Blocked</div>
+    <div class="login-sub">Your access to this app has been restricted by the admin. Please contact support if you think this is a mistake.</div>
+    <button class="login-btn btn-danger" style="margin-top:16px" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
 <!-- ══════════ CHANGE CREDENTIALS MODAL ══════════ -->
 <div class="modal-overlay" id="modal-change-creds">
   <div class="modal">
@@ -428,6 +437,11 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <div class="nav-item" onclick="openModal('manage-cats')">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 12h.01M7 17h.01M11 7h6M11 12h6M11 17h6"/></svg>
       Categories
+    </div>
+    <span class="nav-section" id="admin-nav-section" style="display:none">Admin</span>
+    <div class="nav-item" data-page="admin" id="admin-nav-item" style="display:none">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Admin Panel
     </div>
     <div class="sidebar-footer">
       <div class="user-info" onclick="openModal('profile')">
@@ -558,6 +572,14 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
         <div class="account-txn-section">
           <div class="account-tabs" id="account-tabs"></div>
           <div id="account-txn-list" style="padding:6px 0"></div>
+        </div>
+      </div>
+      <!-- ADMIN PANEL -->
+      <div class="page" id="page-admin">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">All Users</span></div>
+          <div style="font-size:12px;color:var(--text3);padding:0 0 12px">Manage who can access FinVault, block accounts, restrict features, and set limits. This never touches anyone's transaction data.</div>
+          <div id="admin-users-list">Loading users…</div>
         </div>
       </div>
     </div>
@@ -996,6 +1018,14 @@ function populateCatSelect(id,cats,selected=null){
 
   if(!date){toast('Please select a date','error');return}
 
+  // Enforce admin-assigned transaction limit (only applies to brand-new transactions)
+  if(!editId && currentUserMeta && currentUserMeta.limits && currentUserMeta.limits.maxTransactions != null){
+    if((DATA.transactions||[]).length >= currentUserMeta.limits.maxTransactions){
+      toast('Transaction limit reached (' + currentUserMeta.limits.maxTransactions + '). Contact admin to increase it.', 'error');
+      return;
+    }
+  }
+
   // --- 1. GROUP TRANSACTION LOGIC ---
   if(isGroupMode) {
     const rows = document.querySelectorAll('.group-row');
@@ -1372,13 +1402,17 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
   item.addEventListener('click',()=>{switchPage(item.dataset.page);closeSidebar()});
 });
 function switchPage(page){
+  if(page==='admin' && !(currentUserMeta && currentUserMeta.role==='admin')){
+    toast('Admin access only','error');
+    return;
+  }
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const nav=document.querySelector('.nav-item[data-page="'+page+'"]');
   if(nav)nav.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
-  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash']};
+  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],admin:['Admin Panel','Manage users, access & limits']};
   const t=titles[page]||[page,''];
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
@@ -1739,6 +1773,7 @@ function renderPageContent(page){
   else if(page==='investments')renderInvestmentsPage();
   else if(page==='reports')renderReportsPage();
   else if(page==='accounts')renderAccountsPage();
+  else if(page==='admin')renderAdminPanel();
 }
 
 // ══════════════════════════════════════════════
@@ -2031,15 +2066,20 @@ function attemptLogin(){
     const n=DATA.profile.name;
     document.getElementById('user-name-display').textContent=n;
     document.getElementById('user-avatar').textContent=n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    // The owner's original User ID/Password login is always full-access & unrestricted
+    currentUserMeta={uid:'owner',role:'admin',blocked:false,limits:{maxTransactions:null},restrictions:{disabledPages:[]}};
+    applyRoleRestrictions();
     renderAll();
   }else{errEl.classList.add('show');document.getElementById('login-password').value=''}
 }
 function checkAutoLogin(){
-  if(sessionStorage.getItem('finvault_logged_in')==='1'){
+  if(sessionStorage.getItem('finvault_logged_in')==='1' && !sessionStorage.getItem('finvault_google_uid')){
     document.getElementById('login-screen').style.display='none';
     const n=DATA.profile.name;
     document.getElementById('user-name-display').textContent=n;
     document.getElementById('user-avatar').textContent=n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    currentUserMeta={uid:'owner',role:'admin',blocked:false,limits:{maxTransactions:null},restrictions:{disabledPages:[]}};
+    applyRoleRestrictions();
     renderAll();
   }
   document.getElementById('login-password').addEventListener('keydown',e=>{if(e.key==='Enter')attemptLogin()});
@@ -2051,7 +2091,10 @@ function logout(){
   document.getElementById('login-password').value='';
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
+  document.getElementById('blocked-screen').style.display='none';
   closeSidebar&&closeSidebar();
+  sessionStorage.removeItem('finvault_google_uid');
+  currentUserMeta=null;
   // Also sign out of Google if that's how the user logged in
   if (auth && auth.currentUser) {
     import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js').then(({ signOut }) => {
@@ -2096,20 +2139,193 @@ async function signInWithGoogle(){
 async function onGoogleLoginSuccess(user){
   // Give this Google account its own isolated cloud document
   DOC_PATH = 'users/google_' + user.uid;
+
+  const meta = await syncUserMeta(user);
+  if (meta && meta.blocked) {
+    showBlockedScreen();
+    return;
+  }
+  currentUserMeta = meta;
+
   sessionStorage.setItem('finvault_logged_in', '1');
   sessionStorage.setItem('finvault_google_uid', user.uid);
   document.getElementById('login-screen').style.display = 'none';
   const n = user.displayName || DATA.profile.name || 'User';
   document.getElementById('user-name-display').textContent = n;
   document.getElementById('user-avatar').textContent = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  // Reload data scoped to this Google account
-  await reloadFirestoreForCurrentDoc();
+  // Reload data scoped to this Google account (admin's very first login migrates
+  // their existing data over instead of starting empty)
+  const isFirstLoginMigration = !!(meta && meta._isNew && meta.role === 'admin');
+  await reloadFirestoreForCurrentDoc(isFirstLoginMigration);
+  applyRoleRestrictions();
   renderAll();
   toast('Signed in as ' + n + ' ✓', 'success');
 }
 
+// Creates/reads this user's role & permission document (user_meta/<uid>)
+async function syncUserMeta(user){
+  try {
+    const { getFirestore, doc, getDoc, setDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    const metaRef = doc(db, 'user_meta', user.uid);
+    const snap = await getDoc(metaRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      updateDoc(metaRef, { lastLogin: Date.now(), name: user.displayName || data.name || '', email: user.email || data.email || '' }).catch(()=>{});
+      return { uid: user.uid, ...data, _isNew: false };
+    }
+    const isAdmin = ADMIN_EMAILS.includes(user.email);
+    const fresh = {
+      uid: user.uid,
+      email: user.email || '',
+      name: user.displayName || '',
+      role: isAdmin ? 'admin' : 'user',
+      blocked: false,
+      limits: { maxTransactions: null },
+      restrictions: { disabledPages: [] },
+      createdAt: Date.now(),
+      lastLogin: Date.now()
+    };
+    await setDoc(metaRef, fresh);
+    return { ...fresh, _isNew: true };
+  } catch (e) {
+    console.warn('syncUserMeta error:', e);
+    // Fail open as a normal unrestricted user rather than locking the app
+    return { uid: user.uid, role: 'user', blocked: false, limits: { maxTransactions: null }, restrictions: { disabledPages: [] }, _isNew: false };
+  }
+}
+
+function showBlockedScreen(){
+  document.getElementById('login-screen').style.display = 'none';
+  const el = document.getElementById('blocked-screen');
+  if (el) el.style.display = 'flex';
+}
+
+// Hides nav items / enforces limits based on currentUserMeta
+function applyRoleRestrictions(){
+  const disabled = (currentUserMeta && currentUserMeta.restrictions && currentUserMeta.restrictions.disabledPages) || [];
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    const page = item.dataset.page;
+    if (page === 'dashboard') return; // dashboard always available
+    item.style.display = disabled.includes(page) ? 'none' : '';
+  });
+  const adminNav = document.getElementById('admin-nav-item');
+  const adminSection = document.getElementById('admin-nav-section');
+  const isAdmin = currentUserMeta && currentUserMeta.role === 'admin';
+  if (adminNav) adminNav.style.display = isAdmin ? '' : 'none';
+  if (adminSection) adminSection.style.display = isAdmin ? '' : 'none';
+}
+
+// ─── Admin Panel ────────────────────────────────────────────────────────────
+const ADMIN_TOGGLEABLE_PAGES = [
+  {key:'transactions', label:'Transactions'},
+  {key:'accounts', label:'Accounts'},
+  {key:'budgets', label:'Budgets'},
+  {key:'goals', label:'Goals'},
+  {key:'investments', label:'Investments'},
+  {key:'reports', label:'Reports'}
+];
+
+async function renderAdminPanel(){
+  const listEl = document.getElementById('admin-users-list');
+  if (!listEl) return;
+  if (!currentUserMeta || currentUserMeta.role !== 'admin') {
+    listEl.innerHTML = '<div style="padding:20px;color:var(--text3)">Admin access only.</div>';
+    return;
+  }
+  listEl.innerHTML = 'Loading users…';
+  try {
+    const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    const snap = await getDocs(collection(db, 'user_meta'));
+    const users = [];
+    snap.forEach(d => users.push({ uid: d.id, ...d.data() }));
+    users.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+    if (!users.length) {
+      listEl.innerHTML = '<div style="padding:20px;color:var(--text3)">No users yet.</div>';
+      return;
+    }
+    listEl.innerHTML = users.map(u => renderAdminUserRow(u)).join('');
+  } catch (e) {
+    console.warn('renderAdminPanel error:', e);
+    listEl.innerHTML = '<div style="padding:20px;color:var(--red)">Could not load users. Check Firestore rules/connection.</div>';
+  }
+}
+
+function renderAdminUserRow(u){
+  const isSelf = currentUserMeta && u.uid === currentUserMeta.uid;
+  const role = u.role || 'user';
+  const blocked = !!u.blocked;
+  const maxTxn = (u.limits && u.limits.maxTransactions != null) ? u.limits.maxTransactions : '';
+  const disabledPages = (u.restrictions && u.restrictions.disabledPages) || [];
+  const initials = (u.name || u.email || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const pageChecks = ADMIN_TOGGLEABLE_PAGES.map(p => `
+    <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" data-uid="${u.uid}" data-page="${p.key}" class="admin-page-toggle" ${disabledPages.includes(p.key)?'checked':''} ${role==='admin'?'disabled':''}>
+      Hide ${p.label}
+    </label>`).join('');
+  return `
+  <div class="card" style="margin-bottom:10px;padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="width:34px;height:34px;font-size:12px">${initials}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600">${u.name || '(no name)'} ${isSelf?'<span style="font-size:10px;color:var(--accent)">(you)</span>':''}</div>
+          <div style="font-size:11.5px;color:var(--text3)">${u.email || ''} · <span style="text-transform:capitalize">${role}</span> ${blocked?'· <span style="color:var(--red)">Blocked</span>':''}</div>
+        </div>
+      </div>
+      ${role==='admin' ? '' : `
+      <button class="btn btn-sm ${blocked?'btn-primary':'btn-danger'}" onclick="adminToggleBlock('${u.uid}', ${!blocked})">
+        ${blocked ? '✓ Unblock' : '🚫 Block'}
+      </button>`}
+    </div>
+    ${role==='admin' ? '' : `
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <label style="font-size:11.5px;color:var(--text2);white-space:nowrap">Max transactions:</label>
+        <input type="number" min="0" placeholder="Unlimited" value="${maxTxn}" id="admin-max-${u.uid}" class="form-input" style="max-width:110px;padding:6px 8px;font-size:12px">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:10px">
+        ${pageChecks}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="adminSaveUserSettings('${u.uid}')">💾 Save settings</button>
+    </div>`}
+  </div>`;
+}
+
+async function adminToggleBlock(uid, newBlockedState){
+  try {
+    const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    await updateDoc(doc(db, 'user_meta', uid), { blocked: newBlockedState });
+    toast(newBlockedState ? 'User blocked' : 'User unblocked', 'success');
+    renderAdminPanel();
+  } catch (e) {
+    console.warn('adminToggleBlock error:', e);
+    toast('Failed to update user', 'error');
+  }
+}
+
+async function adminSaveUserSettings(uid){
+  try {
+    const maxInput = document.getElementById('admin-max-' + uid);
+    const maxVal = maxInput && maxInput.value !== '' ? parseInt(maxInput.value, 10) : null;
+    const disabledPages = Array.from(document.querySelectorAll(`.admin-page-toggle[data-uid="${uid}"]:checked`)).map(el => el.dataset.page);
+    const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    await updateDoc(doc(db, 'user_meta', uid), {
+      limits: { maxTransactions: (maxVal === null || isNaN(maxVal)) ? null : maxVal },
+      restrictions: { disabledPages }
+    });
+    toast('Settings saved ✓', 'success');
+  } catch (e) {
+    console.warn('adminSaveUserSettings error:', e);
+    toast('Failed to save settings', 'error');
+  }
+}
+
 // Reloads Firestore data + live listener for whatever DOC_PATH currently points to
-async function reloadFirestoreForCurrentDoc(){
+async function reloadFirestoreForCurrentDoc(migrateFromLegacy){
   try {
     const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
     if (!db) db = getFirestore(firebaseApp);
@@ -2118,6 +2334,19 @@ async function reloadFirestoreForCurrentDoc(){
     if (snap.exists() && snap.data() && snap.data().transactions) {
       DATA = snap.data();
       syncCatsFromData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    } else if (migrateFromLegacy) {
+      // Admin's very first Google login: bring over the existing data
+      // that was previously stored in the shared legacy document
+      const legacyRef = doc(db, LEGACY_DOC_PATH);
+      const legacySnap = await getDoc(legacyRef);
+      if (legacySnap.exists() && legacySnap.data() && legacySnap.data().transactions) {
+        DATA = legacySnap.data();
+      } else {
+        DATA = getDefaultData();
+      }
+      syncCatsFromData();
+      await setDoc(docRef, DATA);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
     } else {
       // Brand-new account — start with a fresh, empty dataset and upload it
@@ -2251,6 +2480,15 @@ const firebaseConfig = {
   messagingSenderId: "727186041987",
   appId: "1:727186041987:web:1813db6ba4bbc434fa3fb6"
 };
+
+// ─── Admin configuration ───────────────────────────────────────────────────
+// Put YOUR OWN Gmail address here. Whoever logs in with this email becomes
+// the Admin automatically and gets the Admin Panel. Everyone else who signs
+// in with Google becomes a normal restricted-by-default "user".
+const ADMIN_EMAILS = ["YOUR_EMAIL@gmail.com"];
+
+// Holds the logged-in user's role/limits/restrictions once known
+let currentUserMeta = null; // { uid, email, name, role, blocked, limits:{maxTransactions}, restrictions:{disabledPages:[]} }
 
 // Firestore document reference (one doc per user, using a fixed device key)
 let db = null;
