@@ -533,6 +533,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
             <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="payable">Payable</option><option value="receivable">Receivable</option></select>
             <select class="filter-select" id="filter-cat" onchange="renderTransactionsPage()"><option value="all">All Categories</option></select>
             <select class="filter-select" id="filter-sort" onchange="renderTransactionsPage()"><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
+            <button class="btn btn-ghost btn-sm" title="ফিল্টার রিসেট করুন" onclick="resetTxnFilters()">↺ Reset Filters</button>
           </div>
           <button class="btn btn-primary" onclick="openModal('add-txn')">+ Add Transaction</button>
         </div>
@@ -1765,6 +1766,16 @@ function renderDashGoals(){
   const el=document.getElementById('dash-goals-grid');if(!el)return;
   if(!DATA.goals.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎯</div><div class="empty-text">No goals yet</div></div>`;return}
   el.innerHTML=DATA.goals.map(g=>{const pct=Math.min(Math.round((g.saved/g.target)*100),100);return`<div class="goal-card"><div style="font-size:20px;margin-bottom:8px">${g.emoji}</div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${g.name}</div><div style="font-size:10.5px;color:var(--text2);margin-bottom:10px">Target: ${fmt(g.target)}</div><div style="font-size:18px;font-weight:700;font-family:JetBrains Mono;color:${g.color};margin-bottom:5px">${pct}%</div><div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="font-size:10.5px;color:var(--text2)">${fmt(g.saved)} saved</div></div>`}).join('');
+}
+function resetTxnFilters(){
+  const typeSel=document.getElementById('filter-type');
+  const catSel=document.getElementById('filter-cat');
+  const sortSel=document.getElementById('filter-sort');
+  if(typeSel) typeSel.value='all';
+  if(catSel) catSel.value='all';
+  if(sortSel) sortSel.value='date-desc';
+  renderTransactionsPage();
+  toast('ফিল্টার রিসেট হয়েছে ✓','info');
 }
 function renderTransactionsPage(){
   const{income,expense,savings,payable,receivable}=calcStats();
