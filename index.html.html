@@ -494,7 +494,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
           <div class="kpi-card green"><div class="kpi-label">Monthly Income</div><div class="kpi-value" id="kpi-income">৳0</div><div class="kpi-change up">▲ This month</div><div class="kpi-icon">📥</div></div>
           <div class="kpi-card amber"><div class="kpi-label">Monthly Expenses</div><div class="kpi-value" id="kpi-expense">৳0</div><div class="kpi-change" id="kpi-expense-ch">This month</div><div class="kpi-icon">📤</div></div>
           <div class="kpi-card purple"><div class="kpi-label">Net Savings</div><div class="kpi-value" id="kpi-savings">৳0</div><div class="kpi-change" id="kpi-savings-ch">Savings rate</div><div class="kpi-icon">🏦</div></div>
-          <div class="kpi-card orange"><div class="kpi-label">Total Liability (ঋণ)</div><div class="kpi-value" id="kpi-liability">৳0</div><div class="kpi-change down" id="kpi-liability-ch">পরিশোধযোগ্য</div><div class="kpi-icon">🔴</div></div>
+          <div class="kpi-card orange"><div class="kpi-label">Total Payable (ঋণ)</div><div class="kpi-value" id="kpi-liability">৳0</div><div class="kpi-change down" id="kpi-liability-ch">পরিশোধযোগ্য</div><div class="kpi-icon">🔴</div></div>
           <div class="kpi-card cyan"><div class="kpi-label">Total Receivable (পাওনা)</div><div class="kpi-value" id="kpi-receivable">৳0</div><div class="kpi-change up" id="kpi-receivable-ch">আদায়যোগ্য</div><div class="kpi-icon">🔵</div></div>
         </div>
         <div class="charts-row">
@@ -530,7 +530,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
         <div class="txn-summary-bar" id="txn-summary-bar"></div>
         <div class="txn-page-header">
           <div class="filter-group">
-            <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="liability">Liability</option><option value="receivable">Receivable</option></select>
+            <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="liability">Payable</option><option value="receivable">Receivable</option></select>
             <select class="filter-select" id="filter-cat" onchange="renderTransactionsPage()"><option value="all">All Categories</option></select>
             <select class="filter-select" id="filter-sort" onchange="renderTransactionsPage()"><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
           </div>
@@ -659,7 +659,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <div class="type-toggle" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
         <button class="type-btn active expense" id="type-expense" onclick="setType('expense')">💸 Expense</button>
         <button class="type-btn income" id="type-income" onclick="setType('income')">💰 Income</button>
-        <button class="type-btn liability" id="type-liability" onclick="setType('liability')">🔴 Liability (ঋণ নেওয়া)</button>
+        <button class="type-btn liability" id="type-liability" onclick="setType('liability')">🔴 Payable (ঋণ নেওয়া)</button>
         <button class="type-btn receivable" id="type-receivable" onclick="setType('receivable')">🔵 Receivable (ধার দেওয়া)</button>
       </div>
     </div>
@@ -670,7 +670,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <div class="form-group" id="cat-group-income" style="display:none"><label class="form-label">💰 Income Category</label><select class="form-input" id="txn-cat-income"></select></div>
     </div>
 
-    <!-- Liability / Receivable extra fields -->
+    <!-- Payable / Receivable extra fields -->
     <div id="lr-fields" style="display:none">
       <div class="form-group"><label class="form-label" id="lr-person-label">👤 যার কাছ থেকে ঋণ নিয়েছেন</label><input class="form-input" type="text" id="txn-person" placeholder="নাম লিখুন (যেমন: রাহিম ভাই)"></div>
     </div>
@@ -1002,7 +1002,7 @@ function prepTxnModal(data){
     const accSel=document.getElementById('txn-account');
     if(accSel) accSel.value=data.account;
   }
-  // Liability/Receivable person field
+  // Payable/Receivable person field
   const isLR=(txnType==='liability'||txnType==='receivable');
   if(isLR){
     document.getElementById('txn-person').value=data?data.person||'':'';
@@ -1035,7 +1035,7 @@ function setType(t){
   document.getElementById('cat-group-income').style.display=(t==='income')?'block':'none';
   if(t==='expense') populateCatSelect('txn-cat-expense',getExpenseCats());
   else if(t==='income') populateCatSelect('txn-cat-income',getIncomeCats());
-  // Liability / Receivable person field
+  // Payable / Receivable person field
   const lrFields=document.getElementById('lr-fields');
   if(lrFields) lrFields.style.display=isLR?'block':'none';
   if(isLR){
@@ -1045,7 +1045,7 @@ function setType(t){
   // Account select — সব type-এর জন্য
   ensureAccounts();
   const accSel=document.getElementById('txn-account');
-  if(accSel) accSel.innerHTML=DATA.accounts.map(a=>`<option value="${a.id}">${a.name} (${fmtFull(a.balance)})</option>`).join('');
+  if(accSel) accSel.innerHTML=DATA.accounts.map(a=>`<option value="${a.id}"${a.id==='cash'?' selected':''}>${a.name} (${fmtFull(a.balance)})</option>`).join('');
   // Account label — type অনুযায়ী
   const accLabel=document.getElementById('txn-account-label');
   if(accLabel){
@@ -1288,7 +1288,7 @@ function prepPayoffModal(txn){
   const paid=txn.paidAmount||0;
   const remaining=txn.amount-paid;
   document.getElementById('payoff-title').textContent=isLiability?'💳 Pay Back (ঋণ পরিশোধ)':'💰 Pay Off (পাওনা আদায়)';
-  document.getElementById('payoff-type-label').textContent=isLiability?'🔴 Liability — ঋণ নিয়েছিলেন':'🔵 Receivable — ধার দিয়েছিলেন';
+  document.getElementById('payoff-type-label').textContent=isLiability?'🔴 Payable — ঋণ নিয়েছিলেন':'🔵 Receivable — ধার দিয়েছিলেন';
   document.getElementById('payoff-person-display').textContent=(txn.person||'Unknown')+' · '+txn.desc;
   document.getElementById('payoff-original-amount').textContent=fmt(txn.amount);
   document.getElementById('payoff-remaining').textContent=fmt(remaining);
@@ -1335,7 +1335,7 @@ function doPayoff(){
     id:uid(),
     type:isLiability?'expense':'income',
     amount:payAmt,
-    cat:isLiability?'Liability Payment':'Receivable Collection',
+    cat:isLiability?'Payable Payment':'Receivable Collection',
     desc:(isLiability?'Paid back to ':'Collected from ')+(txn.person||txn.desc),
     date,
     emoji:isLiability?'💳':'💰',
@@ -1613,7 +1613,7 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 function calcStats(){
   const income=DATA.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=DATA.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  // Liability pending = total liability minus paid amounts
+  // Payable pending = total payable minus paid amounts
   const liabilityTxns=DATA.transactions.filter(t=>t.type==='liability');
   const liability=liabilityTxns.reduce((s,t)=>s+(t.amount-(t.paidAmount||0)),0);
   // Receivable pending = total receivable minus collected amounts
@@ -1653,7 +1653,7 @@ function renderKPI(){
   document.getElementById('kpi-income').textContent=fmt(income);
   document.getElementById('kpi-expense').textContent=fmt(expense);
   document.getElementById('kpi-savings').textContent=fmtFull(savings);
-  // Liability & Receivable KPI
+  // Payable & Receivable KPI
   const liabEl=document.getElementById('kpi-liability');
   if(liabEl)liabEl.textContent=fmt(liability);
   const recvEl=document.getElementById('kpi-receivable');
