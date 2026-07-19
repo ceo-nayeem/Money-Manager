@@ -719,9 +719,18 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
   <div class="modal">
     <button class="modal-close" onclick="closeModal('add-budget')">✕</button>
     <div class="modal-title" id="budget-modal-title">Add Budget</div>
-    <div class="form-group"><label class="form-label">Category</label><select class="form-input" id="budget-cat"></select></div>
+    <div class="form-group">
+      <label class="form-label">Budget Type</label>
+      <div class="type-toggle">
+        <button type="button" class="type-btn active income" id="budget-type-category" onclick="setBudgetType('category')">📁 Category</button>
+        <button type="button" class="type-btn expense" id="budget-type-custom" onclick="setBudgetType('custom')">✨ Custom</button>
+      </div>
+    </div>
+    <div class="form-group" id="budget-cat-group"><label class="form-label">Category</label><select class="form-input" id="budget-cat"></select></div>
+    <div class="form-group" id="budget-custom-group" style="display:none"><label class="form-label">Custom Budget Name</label><input class="form-input" type="text" id="budget-custom-name" placeholder="e.g. Eid Preparation"></div>
     <div class="form-group"><label class="form-label">Monthly Limit (৳)</label><input class="form-input" type="number" id="budget-limit" placeholder="5000" min="0"></div>
     <input type="hidden" id="budget-edit-id">
+    <input type="hidden" id="budget-is-custom" value="0">
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('add-budget')">Cancel</button>
       <button class="btn btn-primary" style="flex:2" onclick="saveBudget()">Save Budget</button>
@@ -1346,21 +1355,33 @@ function doPayoff(){
   saveData();closeModal('payoff');renderAll();
   toast((isPayable?'Pay back':'Pay off')+' করা হয়েছে: '+fmt(payAmt)+' ✓');
 }
+function setBudgetType(type){
+  const isCustom=type==='custom';
+  document.getElementById('budget-is-custom').value=isCustom?'1':'0';
+  document.getElementById('budget-cat-group').style.display=isCustom?'none':'block';
+  document.getElementById('budget-custom-group').style.display=isCustom?'block':'none';
+  document.getElementById('budget-type-category').className='type-btn'+(!isCustom?' active income':'');
+  document.getElementById('budget-type-custom').className='type-btn'+(isCustom?' active expense':'');
+}
 function prepBudgetModal(data){
   document.getElementById('budget-modal-title').textContent=data?'Edit Budget':'Add Budget';
   document.getElementById('budget-edit-id').value=data?data.id:'';
   const usedCats=DATA.budgets.map(b=>b.cat);
   const avail=data?getAllCats():getAllCats().filter(c=>!usedCats.includes(c));
-  populateCatSelect('budget-cat',avail.length?avail:getAllCats(),data?data.cat:null);
+  populateCatSelect('budget-cat',avail.length?avail:getAllCats(),data&&!data.isCustom?data.cat:null);
   document.getElementById('budget-limit').value=data?data.limit:'';
+  document.getElementById('budget-custom-name').value=(data&&data.isCustom)?data.cat:'';
+  setBudgetType(data&&data.isCustom?'custom':'category');
 }
 function saveBudget(){
-  const cat=document.getElementById('budget-cat').value;
+  const isCustom=document.getElementById('budget-is-custom').value==='1';
+  const cat=isCustom?document.getElementById('budget-custom-name').value.trim():document.getElementById('budget-cat').value;
   const limit=parseFloat(document.getElementById('budget-limit').value);
   const editId=document.getElementById('budget-edit-id').value;
+  if(isCustom&&!cat){toast('কাস্টম বাজেটের নাম দিন','error');return}
   if(!limit||limit<=0){toast('Enter a valid limit','error');return}
-  if(editId){const idx=DATA.budgets.findIndex(b=>b.id==editId);if(idx!==-1){DATA.budgets[idx].cat=cat;DATA.budgets[idx].limit=limit}toast('Budget updated ✓')}
-  else{if(DATA.budgets.find(b=>b.cat===cat)){toast('Budget already exists for this category','error');return}DATA.budgets.push({id:uid(),cat,limit,color:getCatColor(cat)});toast('Budget added ✓')}
+  if(editId){const idx=DATA.budgets.findIndex(b=>b.id==editId);if(idx!==-1){DATA.budgets[idx].cat=cat;DATA.budgets[idx].limit=limit;DATA.budgets[idx].isCustom=isCustom;if(isCustom)DATA.budgets[idx].color='#a78bfa'}toast('Budget updated ✓')}
+  else{if(DATA.budgets.find(b=>b.cat===cat)){toast('Budget already exists for this name','error');return}DATA.budgets.push({id:uid(),cat,limit,isCustom,color:isCustom?'#a78bfa':getCatColor(cat)});toast('Budget added ✓')}
   saveData();closeModal('add-budget');renderAll();
 }
 function deleteBudget(id){if(!confirm('Remove this budget?'))return;DATA.budgets=DATA.budgets.filter(b=>b.id!=id);saveData();renderAll();toast('Budget removed','info')}
@@ -1882,7 +1903,7 @@ function renderBudgetsPage(){
     const pct=Math.min(Math.round((spent/monthLimit)*100),100);const over=spent>monthLimit;const rem=monthLimit-spent;
     return`<div class="budget-page-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${getCatEmoji(b.cat)}</span><span style="font-weight:600;font-size:13px">${b.cat}</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${b.isCustom?'✨':getCatEmoji(b.cat)}</span><span style="font-weight:600;font-size:13px">${b.cat}</span></div>
         <span style="font-size:12px;padding:3px 8px;border-radius:20px;background:${over?'#ef444420':'#10b98118'};color:${over?'#ef4444':'#10b981'};font-weight:700">${pct}%</span>
       </div>
       <div class="budget-stat"><span style="color:var(--text2)">Spent</span><span style="font-family:JetBrains Mono;font-weight:600">${fmt(spent)}</span></div>
@@ -2663,11 +2684,13 @@ let currentCatTab = 'expense';
 
 function prepManageCats(){
   currentCatTab = 'expense';
+  editingCatIndex = null;
   renderCatTab();
 }
 
 function switchCatTab(tab){
   currentCatTab = tab;
+  editingCatIndex = null;
   ['expense','income','invest'].forEach(t=>{
     document.getElementById('mcat-tab-'+t).className='tab'+(t===tab?' active':'');
   });
@@ -2676,12 +2699,35 @@ function switchCatTab(tab){
   renderCatTab();
 }
 
+let editingCatIndex = null;
+let catDragSrcIndex = null;
+
+function getCurrentCatItems(){
+  return currentCatTab==='invest' ? CATS.invest : CATS[currentCatTab];
+}
+
 function renderCatTab(){
   const list = document.getElementById('mcat-list');
-  const items = currentCatTab==='invest' ? CATS.invest : CATS[currentCatTab];
+  const items = getCurrentCatItems();
+  const isInvest = currentCatTab==='invest';
   list.innerHTML = items.map((c,i)=>{
-    const isInvest = currentCatTab==='invest';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+    if(editingCatIndex===i){
+      return `<div style="display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--bg4);border-radius:8px;border:1px solid var(--accent)">
+        <div style="display:flex;gap:6px">
+          ${!isInvest?`<input class="form-input" id="mcat-edit-emoji" value="${c.emoji||''}" maxlength="2" style="width:52px;text-align:center;padding:6px 4px">`:''}
+          <input class="form-input" id="mcat-edit-name" value="${c.name.replace(/"/g,'&quot;')}" style="flex:1;padding:6px 10px" placeholder="Category name">
+          <input class="form-input" type="color" id="mcat-edit-color" value="${c.color}" style="width:42px;height:36px;padding:2px;cursor:pointer">
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="cancelEditCategory()">Cancel</button>
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveEditCategory(${i})">✓ Save</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="mcat-row" draggable="true" data-idx="${i}"
+        ondragstart="catDragStart(event)" ondragover="catDragOver(event)" ondrop="catDrop(event)" ondragend="catDragEnd(event)"
+        style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);cursor:grab;transition:opacity 0.15s,border-color 0.15s">
+      <span style="color:var(--text3);font-size:13px;flex-shrink:0;user-select:none;cursor:grab" title="Drag to reorder">⠿⠿</span>
       ${!isInvest?`<span style="font-size:16px;min-width:24px;text-align:center">${c.emoji}</span>`:''}
       <span style="flex:1;font-size:13px;font-weight:500">${c.name}</span>
       <span style="width:14px;height:14px;border-radius:50%;background:${c.color};flex-shrink:0;display:inline-block"></span>
@@ -2692,22 +2738,67 @@ function renderCatTab(){
 }
 
 function editCategoryInline(idx){
-  const items = currentCatTab==='invest' ? CATS.invest : CATS[currentCatTab];
-  const c = items[idx];
-  const newName = prompt('New name:', c.name);
-  if(newName===null) return;
-  if(!newName.trim()){toast('Name cannot be empty','error');return}
+  editingCatIndex = idx;
+  renderCatTab();
+}
+
+function cancelEditCategory(){
+  editingCatIndex = null;
+  renderCatTab();
+}
+
+function saveEditCategory(idx){
+  const items = getCurrentCatItems();
   const isInvest = currentCatTab==='invest';
-  let newEmoji = c.emoji||'';
-  if(!isInvest){ newEmoji = prompt('Emoji:', c.emoji)||c.emoji; }
-  const newColor = prompt('Color (hex, e.g. #4f8ef7):', c.color)||c.color;
-  items[idx] = isInvest
-    ? {name:newName.trim(), color:newColor}
-    : {name:newName.trim(), emoji:newEmoji||c.emoji, color:newColor};
+  const c = items[idx];
+  const nameEl = document.getElementById('mcat-edit-name');
+  const colorEl = document.getElementById('mcat-edit-color');
+  const newName = nameEl.value.trim();
+  if(!newName){toast('Name cannot be empty','error');return}
+  const newColor = colorEl.value || c.color;
+  let newEmoji = c.emoji;
+  if(!isInvest){
+    const emojiEl = document.getElementById('mcat-edit-emoji');
+    newEmoji = (emojiEl.value.trim())||c.emoji;
+  }
+  items[idx] = isInvest ? {name:newName, color:newColor} : {name:newName, emoji:newEmoji, color:newColor};
+  editingCatIndex = null;
   saveCats();
   renderCatTab();
   renderAll();
   toast('Category updated ✓');
+}
+
+// ── Drag & drop reordering ──────────────────────────────────────────────────
+function catDragStart(e){
+  catDragSrcIndex = parseInt(e.currentTarget.dataset.idx);
+  e.dataTransfer.effectAllowed = 'move';
+  try{ e.dataTransfer.setData('text/plain', String(catDragSrcIndex)); }catch(err){}
+  e.currentTarget.style.opacity = '0.4';
+}
+function catDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.borderColor = 'var(--accent)';
+}
+function catDrop(e){
+  e.preventDefault();
+  e.currentTarget.style.borderColor = '';
+  const targetIndex = parseInt(e.currentTarget.dataset.idx);
+  if(catDragSrcIndex===null || isNaN(targetIndex) || catDragSrcIndex===targetIndex) return;
+  const items = getCurrentCatItems();
+  const [moved] = items.splice(catDragSrcIndex, 1);
+  items.splice(targetIndex, 0, moved);
+  catDragSrcIndex = null;
+  saveCats();
+  renderCatTab();
+  renderAll();
+  toast('Category order updated ✓','info');
+}
+function catDragEnd(e){
+  e.currentTarget.style.opacity = '1';
+  document.querySelectorAll('.mcat-row').forEach(r=>r.style.borderColor='');
+  catDragSrcIndex = null;
 }
 
 function deleteCategory(idx){
