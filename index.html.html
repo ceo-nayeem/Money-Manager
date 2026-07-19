@@ -1800,8 +1800,6 @@ function resetTxnFilters(){
 }
 function renderTransactionsPage(){
   const{income,expense,savings,payable,receivable}=calcStats();
-  const sb=document.getElementById('txn-summary-bar');
-  if(sb)sb.innerHTML=`<div class="txn-summary-item"><div class="txn-summary-label">Total Income</div><div class="txn-summary-val up">${fmt(income)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Total Expenses</div><div class="txn-summary-val down">${fmt(expense)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔴 Payable (ঋণ)</div><div class="txn-summary-val" style="color:#f59e0b">${fmt(payable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔵 Receivable (পাওনা)</div><div class="txn-summary-val" style="color:#06b6d4">${fmt(receivable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Net</div><div class="txn-summary-val ${savings>=0?'up':'down'}">${fmtFull(savings)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Count</div><div class="txn-summary-val">${DATA.transactions.length}</div></div>`;
   const catSel=document.getElementById('filter-cat');
   const allCats=[...new Set(DATA.transactions.map(t=>t.cat))];
   const curCat=catSel.value;
@@ -1812,6 +1810,17 @@ function renderTransactionsPage(){
   const sortF=document.getElementById('filter-sort').value;
   if(typeF!=='all')txns=txns.filter(t=>t.type===typeF);
   if(catF!=='all')txns=txns.filter(t=>t.cat===catF);
+  const isFiltered=(typeF!=='all'||catF!=='all');
+  const filteredTotal=txns.reduce((s,t)=>s+t.amount,0);
+  const typeLabels={income:'Income',expense:'Expense',payable:'🔴 Payable',receivable:'🔵 Receivable'};
+  let filterLabel='Filtered Total';
+  if(catF!=='all'&&typeF!=='all')filterLabel=`${catF} (${typeLabels[typeF]})`;
+  else if(catF!=='all')filterLabel=catF;
+  else if(typeF!=='all')filterLabel=`Total ${typeLabels[typeF]}`;
+  const filterColor=typeF==='income'?'up':typeF==='expense'?'down':'';
+  const sb=document.getElementById('txn-summary-bar');
+  const filteredCard=isFiltered?`<div class="txn-summary-item" style="border-color:var(--accent)"><div class="txn-summary-label">🔎 ${filterLabel}</div><div class="txn-summary-val ${filterColor}">${fmt(filteredTotal)}</div><div style="font-size:10px;color:var(--text2);margin-top:2px">${txns.length} টি ট্রানজেকশন</div></div>`:'';
+  if(sb)sb.innerHTML=filteredCard+`<div class="txn-summary-item"><div class="txn-summary-label">Total Income</div><div class="txn-summary-val up">${fmt(income)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Total Expenses</div><div class="txn-summary-val down">${fmt(expense)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔴 Payable (ঋণ)</div><div class="txn-summary-val" style="color:#f59e0b">${fmt(payable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔵 Receivable (পাওনা)</div><div class="txn-summary-val" style="color:#06b6d4">${fmt(receivable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Net</div><div class="txn-summary-val ${savings>=0?'up':'down'}">${fmtFull(savings)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Count</div><div class="txn-summary-val">${DATA.transactions.length}</div></div>`;
   txns.sort((a,b)=>sortF==='date-desc'?new Date(b.date)-new Date(a.date):sortF==='date-asc'?new Date(a.date)-new Date(b.date):sortF==='amount-desc'?b.amount-a.amount:a.amount-b.amount);
   const el=document.getElementById('txn-full-list');if(!el)return;
   el.innerHTML=txns.length?txns.map(t=>{
