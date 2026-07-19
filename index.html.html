@@ -327,9 +327,127 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .login-footer{text-align:center;font-size:11px;color:var(--text3);margin-top:18px}
 .cred-hint{font-size:11px;color:var(--text2);margin-top:4px}
 
+/* ══════════════════════════════════════════════════════════════════
+   ✨ DESIGN ENHANCEMENTS v2 — glass surfaces, ripple, micro-motion
+   (pure CSS/lightweight JS only — no extra libraries, GPU-friendly)
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --glass:rgba(15,19,32,0.6);
+  --glass-border:rgba(255,255,255,0.09);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important;scroll-behavior:auto !important}
+}
+
+/* Ambient background glow — static gradients, no animation loop = cheap */
+body{position:relative}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(680px 520px at 6% -8%, #4f8ef71c, transparent 60%),
+    radial-gradient(620px 480px at 102% 6%, #7c3aed1a, transparent 55%),
+    radial-gradient(700px 560px at 28% 112%, #10b98112, transparent 60%);
+}
+.app{position:relative;z-index:1}
+
+/* Glass surfaces */
+.sidebar{
+  background:linear-gradient(180deg, var(--glass), rgba(15,19,32,0.85));
+  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  border-right:1px solid var(--glass-border);
+  box-shadow:8px 0 32px #00000030;
+}
+.header{
+  background:rgba(8,11,18,0.66);
+  backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
+  border-bottom:1px solid var(--glass-border);
+}
+.modal-overlay{backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%)}
+.modal{
+  background:linear-gradient(165deg, rgba(30,37,58,0.94), rgba(15,19,32,0.97));
+  backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);
+  border:1px solid var(--glass-border);
+}
+.login-box{
+  background:linear-gradient(165deg, rgba(30,37,58,0.92), rgba(15,19,32,0.96));
+  backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);
+}
+.chip{background:rgba(255,255,255,0.045);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--glass-border);transition:border-color 0.2s,background 0.2s}
+.chip:hover{border-color:var(--border3)}
+
+/* Cards: subtle top sheen + refined hover elevation */
+.kpi-card,.budget-page-card,.goal-page-card,.invest-card{position:relative;overflow:hidden}
+.kpi-card::after,.budget-page-card::after,.goal-page-card::after,.invest-card::after,.payment-card::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.055) 45%, transparent 60%);
+  transform:translateX(-120%);transition:transform 0.7s var(--ease-out);
+}
+.kpi-card:hover::after,.budget-page-card:hover::after,.goal-page-card:hover::after,.invest-card:hover::after,.payment-card:hover::after{transform:translateX(120%)}
+.kpi-card{transition:transform 0.28s var(--ease-out),box-shadow 0.28s var(--ease-out),border-color 0.28s}
+.kpi-card:hover{box-shadow:0 14px 34px -14px #00000070}
+.kpi-card.blue:hover{box-shadow:0 14px 34px -14px #4f8ef755}
+.kpi-card.purple:hover{box-shadow:0 14px 34px -14px #7c3aed55}
+.kpi-card.green:hover{box-shadow:0 14px 34px -14px #10b98155}
+.kpi-card.amber:hover,.kpi-card.orange:hover{box-shadow:0 14px 34px -14px #f59e0b55}
+.kpi-card.cyan:hover{box-shadow:0 14px 34px -14px #06b6d455}
+.card,.budget-page-card,.goal-page-card,.invest-card{transition:transform 0.26s var(--ease-out),box-shadow 0.26s var(--ease-out),border-color 0.26s}
+.card:hover{box-shadow:0 16px 38px -20px #000000a0}
+.payment-card{transition:transform 0.32s var(--ease-spring),box-shadow 0.32s var(--ease-out)}
+
+/* Buttons / interactive rows — ripple hosts + press feedback */
+.btn,.nav-item,.tab,.type-btn,.account-tab,.txn-item,.txn-full-item,.payment-card,.goal-card{position:relative;overflow:hidden}
+.btn{transition:transform 0.16s var(--ease-spring),box-shadow 0.2s var(--ease-out),background 0.18s,border-color 0.18s,color 0.18s}
+.btn:active{transform:scale(0.96)}
+.nav-item{border-radius:0 10px 10px 0;transition:background 0.18s,color 0.18s,transform 0.16s var(--ease-spring)}
+.nav-item:active{transform:scale(0.98)}
+.nav-icon{transition:transform 0.25s var(--ease-spring),opacity 0.2s}
+.nav-item:hover .nav-icon{transform:translateX(2px)}
+.nav-item.active .nav-icon{filter:drop-shadow(0 0 6px #4f8ef770)}
+.txn-item,.txn-full-item{transition:background 0.2s,transform 0.2s var(--ease-out)}
+.txn-item:hover,.txn-full-item:hover{transform:translateX(2px)}
+.goal-card,.account-tab,.type-btn,.tab{transition:all 0.2s var(--ease-out)}
+.avatar{transition:box-shadow 0.25s}
+.user-info:hover .avatar{box-shadow:0 0 0 3px #4f8ef735}
+
+/* Logo shimmer — slow, subtle, cheap (background-position only) */
+.logo-mark,.login-logo-mark{background-size:220% auto;animation:shimmer 8s linear infinite}
+@keyframes shimmer{0%{background-position:0% 50%}100%{background-position:220% 50%}}
+
+/* Ripple effect */
+.ripple{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,0.32);transform:scale(0);animation:rippleAnim 0.6s var(--ease-out);mix-blend-mode:overlay;z-index:5}
+@keyframes rippleAnim{to{transform:scale(2.6);opacity:0}}
+
+/* Page switch transition */
+@keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:pageIn 0.35s var(--ease-out)}
+
+/* Input focus glow */
+.form-input{transition:border-color 0.2s,box-shadow 0.2s}
+.form-input:focus{box-shadow:0 0 0 3px #4f8ef724}
+
+/* Scrollbar refine */
+::-webkit-scrollbar-thumb{transition:background 0.2s}
+::-webkit-scrollbar-thumb:hover{background:var(--bg5)}
+
+/* ── App loader (≈0.5s branded splash) ── */
+#app-loader{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity 0.4s var(--ease-out),visibility 0.4s}
+#app-loader.hide{opacity:0;visibility:hidden;pointer-events:none}
+.loader-logo{font-size:24px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#4f8ef7,#7c3aed,#4f8ef7);background-size:220% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 1.3s linear infinite}
+.loader-sub{font-size:9.5px;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase}
+.loader-ring{width:32px;height:32px;border-radius:50%;border:2.5px solid #ffffff14;border-top-color:var(--accent);animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+<div id="app-loader"><div class="loader-logo">FinVault</div><div class="loader-ring"></div><div class="loader-sub">Loading your finances</div></div>
+<script>
+setTimeout(function(){
+  var ld=document.getElementById('app-loader');
+  if(ld){ ld.classList.add('hide'); setTimeout(function(){ if(ld&&ld.parentNode) ld.parentNode.removeChild(ld); },450); }
+},500);
+</script>
 <!-- ══════════ LOGIN SCREEN ══════════ -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
@@ -976,6 +1094,27 @@ const fmtFull=n=>'৳'+Math.round(n).toLocaleString('en-IN');
 const today=()=>new Date().toISOString().split('T')[0];
 const uid=()=>Date.now()+Math.floor(Math.random()*9999);
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',3200)}
+
+// ── Ripple micro-interaction (single delegated listener — lightweight) ─────
+(function(){
+  const RIPPLE_SELECTOR='.btn, .nav-item, .tab, .type-btn, .account-tab, .txn-item, .txn-full-item, .payment-card, .goal-card';
+  document.addEventListener('pointerdown', function(e){
+    const el = e.target.closest(RIPPLE_SELECTOR);
+    if(!el || el.classList.contains('mcat-row')) return;
+    const rect = el.getBoundingClientRect();
+    if(!rect.width || !rect.height) return;
+    const size = Math.max(rect.width, rect.height) * 1.4;
+    const span = document.createElement('span');
+    span.className = 'ripple';
+    span.style.width = span.style.height = size + 'px';
+    span.style.left = (e.clientX - rect.left - size/2) + 'px';
+    span.style.top = (e.clientY - rect.top - size/2) + 'px';
+    el.appendChild(span);
+    const cleanup = () => { if(span.parentNode) span.parentNode.removeChild(span); };
+    span.addEventListener('animationend', cleanup, {once:true});
+    setTimeout(cleanup, 700);
+  }, {passive:true});
+})();
 function openModal(id,data=null){
   if(id==='add-txn')prepTxnModal(data);
   else if(id==='add-budget')prepBudgetModal(data);
