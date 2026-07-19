@@ -490,7 +490,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
         <div class="kpi-grid">
-          <div class="kpi-card blue"><div class="kpi-label">Total Balance</div><div class="kpi-value" id="kpi-balance">৳0</div><div class="kpi-change up" id="kpi-balance-ch">Net position</div><div class="kpi-icon">💰</div></div>
+          <div class="kpi-card blue"><div class="kpi-label">Total Balance</div><div class="kpi-value" id="kpi-balance">৳0</div><div class="kpi-change up" id="kpi-balance-ch">Net position</div><div class="kpi-value" id="kpi-balance-minus-budget" style="font-size:13px;opacity:0.5;margin-top:4px">৳0</div><div class="kpi-icon">💰</div></div>
           <div class="kpi-card green"><div class="kpi-label">Monthly Income</div><div class="kpi-value" id="kpi-income">৳0</div><div class="kpi-change up">▲ This month</div><div class="kpi-icon">📥</div></div>
           <div class="kpi-card amber"><div class="kpi-label">Monthly Expenses</div><div class="kpi-value" id="kpi-expense">৳0</div><div class="kpi-change" id="kpi-expense-ch">This month</div><div class="kpi-icon">📤</div></div>
           <div class="kpi-card purple"><div class="kpi-label">Net Savings</div><div class="kpi-value" id="kpi-savings">৳0</div><div class="kpi-change" id="kpi-savings-ch">Savings rate</div><div class="kpi-icon">🏦</div></div>
@@ -1672,6 +1672,12 @@ function switchFlowChart(el,period){document.querySelectorAll('.tab').forEach(t=
 function renderKPI(){
   const{income,expense,balance,savings,payable,receivable}=calcStats();
   document.getElementById('kpi-balance').textContent=fmtFull(balance);
+  // বাজেট বাদ দিয়ে টোটাল ব্যালেন্স (কম opacity তে দেখানো হবে)
+  const curMonthStr=(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;})();
+  const totalBudgetAmt=DATA.budgets.reduce((s,b)=>s+getBudgetLimitForMonth(b,curMonthStr),0);
+  const balanceMinusBudget=balance-totalBudgetAmt;
+  const bmbEl=document.getElementById('kpi-balance-minus-budget');
+  if(bmbEl)bmbEl.textContent='বাজেট বাদে: '+fmtFull(balanceMinusBudget);
   document.getElementById('kpi-income').textContent=fmt(income);
   document.getElementById('kpi-expense').textContent=fmt(expense);
   document.getElementById('kpi-savings').textContent=fmtFull(savings);
