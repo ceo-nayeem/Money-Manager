@@ -672,9 +672,13 @@ setTimeout(function(){
       </div>
       <!-- GOALS -->
       <div class="page" id="page-goals">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div style="font-size:13px;color:var(--text2)">Track your savings milestones.</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="font-size:13px;color:var(--text2)">Track your savings milestones. চলমান গোলগুলো ড্র্যাগ করে প্রায়োরিটি অনুযায়ী সাজাতে পারবেন।</div>
           <button class="btn btn-primary" onclick="openModal('add-goal')">+ New Goal</button>
+        </div>
+        <div class="tab-group" style="margin-bottom:16px;width:fit-content">
+          <div class="tab active" id="goal-tab-pending" onclick="switchGoalTab('pending')">🎯 চলমান</div>
+          <div class="tab" id="goal-tab-achieved" onclick="switchGoalTab('achieved')">🏆 অর্জিত</div>
         </div>
         <div class="goals-page-grid" id="goals-page-grid"></div>
       </div>
@@ -1089,6 +1093,8 @@ syncCatsFromData(); // Now safe — function is defined above
 })();
 const GOAL_COLORS=['#4f8ef7','#7c3aed','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4','#84cc16'];
 let goalColorIdx=0;
+let currentGoalTab='pending';
+let goalDragSrcIdx=null;
 const fmt=n=>'৳'+Math.abs(Math.round(n)).toLocaleString('en-IN');
 const fmtFull=n=>'৳'+Math.round(n).toLocaleString('en-IN');
 const today=()=>new Date().toISOString().split('T')[0];
@@ -1541,7 +1547,11 @@ function saveGoal(){
   if(!name){toast('Enter a goal name','error');return}
   if(!target||target<=0){toast('Enter a valid target','error');return}
   if(editId){const idx=DATA.goals.findIndex(g=>g.id==editId);if(idx!==-1)DATA.goals[idx]={...DATA.goals[idx],name,emoji,target,saved};toast('Goal updated ✓')}
-  else{DATA.goals.push({id:uid(),name,emoji,target,saved,color:GOAL_COLORS[goalColorIdx++%GOAL_COLORS.length]});toast('Goal added ✓')}
+  else{
+    const maxOrder=DATA.goals.filter(g=>!g.achieved).reduce((m,g)=>Math.max(m,(g.order??0)),-1);
+    DATA.goals.push({id:uid(),name,emoji,target,saved,color:GOAL_COLORS[goalColorIdx++%GOAL_COLORS.length],achieved:false,order:maxOrder+1});
+    toast('Goal added ✓');
+  }
   saveData();closeModal('add-goal');renderAll();
 }
 function deleteGoal(id){if(!confirm('Delete this goal?'))return;DATA.goals=DATA.goals.filter(g=>g.id!=id);saveData();renderAll();toast('Goal removed','info')}
@@ -1558,7 +1568,29 @@ function addSavings(){
   if(!amt||amt<=0){toast('Enter a valid amount','error');return}
   const idx=DATA.goals.findIndex(g=>g.id==id);if(idx===-1)return;
   DATA.goals[idx].saved=Math.min(DATA.goals[idx].saved+amt,DATA.goals[idx].target);
-  saveData();closeModal('add-savings');renderAll();toast(fmt(amt)+' added to '+DATA.goals[idx].name+' ✓');
+  const g=DATA.goals[idx];
+  saveData();closeModal('add-savings');renderAll();toast(fmt(amt)+' added to '+g.name+' ✓');
+  // গোল সম্পূর্ণ হয়ে গেলে "অর্জিত" হিসেবে মার্ক করার অপশন দেওয়া হয়
+  if(g.saved>=g.target && !g.achieved){
+    setTimeout(()=>{
+      if(confirm('🎉 "'+g.name+'" গোলটি সম্পূর্ণ হয়ে গেছে!\n\nএটি "অর্জিত" (Achieved) হিসেবে মার্ক করবেন?')){
+        markGoalAchieved(g.id);
+      }
+    },300);
+  }
+}
+function markGoalAchieved(id){
+  const idx=DATA.goals.findIndex(g=>g.id==id);if(idx===-1)return;
+  DATA.goals[idx].achieved=true;
+  DATA.goals[idx].achievedAt=today();
+  saveData();renderAll();
+  toast('🏆 "'+DATA.goals[idx].name+'" অর্জিত গোল হিসেবে মার্ক করা হলো!');
+}
+function restoreGoal(id){
+  const idx=DATA.goals.findIndex(g=>g.id==id);if(idx===-1)return;
+  DATA.goals[idx].achieved=false;
+  saveData();renderAll();
+  toast('গোলটি আবার "চলমান" তালিকায় ফিরিয়ে আনা হয়েছে','info');
 }
 function prepInvestModal(data){
   document.getElementById('invest-modal-title').textContent=data?'Edit Investment':'Add Investment';
@@ -1930,8 +1962,9 @@ function renderDashBudgets(){
 }
 function renderDashGoals(){
   const el=document.getElementById('dash-goals-grid');if(!el)return;
-  if(!DATA.goals.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎯</div><div class="empty-text">No goals yet</div></div>`;return}
-  el.innerHTML=DATA.goals.map(g=>{const pct=Math.min(Math.round((g.saved/g.target)*100),100);return`<div class="goal-card"><div style="font-size:20px;margin-bottom:8px">${g.emoji}</div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${g.name}</div><div style="font-size:10.5px;color:var(--text2);margin-bottom:10px">Target: ${fmt(g.target)}</div><div style="font-size:18px;font-weight:700;font-family:JetBrains Mono;color:${g.color};margin-bottom:5px">${pct}%</div><div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="font-size:10.5px;color:var(--text2)">${fmt(g.saved)} saved</div></div>`}).join('');
+  const pendingGoals=DATA.goals.filter(g=>!g.achieved).sort((a,b)=>(a.order??0)-(b.order??0));
+  if(!pendingGoals.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎯</div><div class="empty-text">No goals yet</div></div>`;return}
+  el.innerHTML=pendingGoals.map(g=>{const pct=Math.min(Math.round((g.saved/g.target)*100),100);return`<div class="goal-card"><div style="font-size:20px;margin-bottom:8px">${g.emoji}</div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${g.name}</div><div style="font-size:10.5px;color:var(--text2);margin-bottom:10px">Target: ${fmt(g.target)}</div><div style="font-size:18px;font-weight:700;font-family:JetBrains Mono;color:${g.color};margin-bottom:5px">${pct}%</div><div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="font-size:10.5px;color:var(--text2)">${fmt(g.saved)} saved</div></div>`}).join('');
 }
 function resetTxnFilters(){
   const typeSel=document.getElementById('filter-type');
@@ -2090,10 +2123,74 @@ function editMonthBudgetLimit(budgetId){
   saveData(); renderBudgetsPage();
   toast(`${budgetSelectedMonth} এর limit আপডেট হয়েছে ✓`);
 }
+function switchGoalTab(tab){
+  currentGoalTab=tab;
+  const pEl=document.getElementById('goal-tab-pending');
+  const aEl=document.getElementById('goal-tab-achieved');
+  if(pEl)pEl.classList.toggle('active',tab==='pending');
+  if(aEl)aEl.classList.toggle('active',tab==='achieved');
+  renderGoalsPage();
+}
+function buildGoalCardHTML(g,idx,isAchieved){
+  const pct=Math.min(Math.round((g.saved/g.target)*100),100);
+  const dragAttrs=isAchieved?'':`draggable="true" data-idx="${idx}" ondragstart="goalDragStart(event)" ondragover="goalDragOver(event)" ondrop="goalDrop(event)" ondragend="goalDragEnd(event)"`;
+  const dragHandle=isAchieved?'':`<span style="color:var(--text3);font-size:12px;cursor:grab;user-select:none;margin-right:6px" title="Drag to reorder priority">⠿⠿</span>`;
+  const canMarkAchieved=(!isAchieved && pct>=100);
+  const badge=isAchieved
+    ?`<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:#10b98120;color:#10b981;font-weight:700">✓ অর্জিত</span>`
+    :`<span style="font-size:12px;padding:3px 8px;border-radius:20px;background:${g.color}20;color:${g.color};font-weight:700">${pct}%</span>`;
+  const bottomRow=isAchieved
+    ?`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:14px"><span style="color:var(--text2)">Achieved on</span><span style="font-family:JetBrains Mono">${g.achievedAt||'-'}</span></div>`
+    :`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:14px"><span style="color:var(--text2)">Remaining</span><span style="font-family:JetBrains Mono">${fmt(g.target-g.saved)}</span></div>`;
+  const actions=isAchieved
+    ?`<button class="btn btn-ghost btn-sm" style="flex:2" onclick="restoreGoal(${g.id})">↩ চলমানে ফিরান</button><button class="btn btn-danger btn-sm" onclick="deleteGoal(${g.id})">✕</button>`
+    :`${canMarkAchieved?`<button class="btn btn-success btn-sm" style="flex:2" onclick="markGoalAchieved(${g.id})">🏆 অর্জিত করুন</button>`:`<button class="btn btn-success btn-sm" style="flex:2" onclick="openAddSavings(${g.id})">+ Add Savings</button>`}<button class="btn btn-ghost btn-sm" onclick="openModal('add-goal',${JSON.stringify(g).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteGoal(${g.id})">✕</button>`;
+  return `<div class="goal-page-card" ${dragAttrs} style="${isAchieved?'opacity:0.85':''}"><div style="display:flex;justify-content:space-between;align-items:flex-start"><span style="display:flex;align-items:center;font-size:24px">${dragHandle}${g.emoji}</span>${badge}</div><div style="font-size:14px;font-weight:700;margin:8px 0 3px">${g.name}</div><div style="font-size:11px;color:var(--text2);margin-bottom:12px">Target: ${fmt(g.target)}</div><div class="goal-bar" style="height:6px;margin-bottom:8px"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span style="color:var(--text2)">Saved</span><span style="font-family:JetBrains Mono;color:${g.color};font-weight:600">${fmt(g.saved)}</span></div>${bottomRow}<div class="goal-page-actions">${actions}</div></div>`;
+}
 function renderGoalsPage(){
   const el=document.getElementById('goals-page-grid');if(!el)return;
-  if(!DATA.goals.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:40px"><div class="empty-icon">🎯</div><div class="empty-text">No goals yet. Add one!</div></div>`;return}
-  el.innerHTML=DATA.goals.map(g=>{const pct=Math.min(Math.round((g.saved/g.target)*100),100);return`<div class="goal-page-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><span style="font-size:24px">${g.emoji}</span><span style="font-size:12px;padding:3px 8px;border-radius:20px;background:${g.color}20;color:${g.color};font-weight:700">${pct}%</span></div><div style="font-size:14px;font-weight:700;margin:8px 0 3px">${g.name}</div><div style="font-size:11px;color:var(--text2);margin-bottom:12px">Target: ${fmt(g.target)}</div><div class="goal-bar" style="height:6px;margin-bottom:8px"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span style="color:var(--text2)">Saved</span><span style="font-family:JetBrains Mono;color:${g.color};font-weight:600">${fmt(g.saved)}</span></div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:14px"><span style="color:var(--text2)">Remaining</span><span style="font-family:JetBrains Mono">${fmt(g.target-g.saved)}</span></div><div class="goal-page-actions"><button class="btn btn-success btn-sm" style="flex:2" onclick="openAddSavings(${g.id})">+ Add Savings</button><button class="btn btn-ghost btn-sm" onclick="openModal('add-goal',${JSON.stringify(g).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteGoal(${g.id})">✕</button></div></div>`}).join('');
+  const pending=DATA.goals.filter(g=>!g.achieved).sort((a,b)=>(a.order??0)-(b.order??0));
+  const achieved=DATA.goals.filter(g=>g.achieved).sort((a,b)=>new Date(b.achievedAt||0)-new Date(a.achievedAt||0));
+  const pTabEl=document.getElementById('goal-tab-pending');
+  const aTabEl=document.getElementById('goal-tab-achieved');
+  if(pTabEl)pTabEl.textContent=`🎯 চলমান (${pending.length})`;
+  if(aTabEl)aTabEl.textContent=`🏆 অর্জিত (${achieved.length})`;
+  if(currentGoalTab==='achieved'){
+    if(!achieved.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:40px"><div class="empty-icon">🏆</div><div class="empty-text">এখনো কোনো গোল অর্জিত হয়নি।</div></div>`;return}
+    el.innerHTML=achieved.map((g,i)=>buildGoalCardHTML(g,i,true)).join('');
+  } else {
+    if(!pending.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:40px"><div class="empty-icon">🎯</div><div class="empty-text">No goals yet. Add one!</div></div>`;return}
+    el.innerHTML=pending.map((g,i)=>buildGoalCardHTML(g,i,false)).join('');
+  }
+}
+function goalDragStart(e){
+  goalDragSrcIdx=parseInt(e.currentTarget.dataset.idx);
+  e.dataTransfer.effectAllowed='move';
+  try{e.dataTransfer.setData('text/plain',String(goalDragSrcIdx));}catch(err){}
+  e.currentTarget.style.opacity='0.4';
+}
+function goalDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  e.currentTarget.style.borderColor='var(--accent)';
+}
+function goalDrop(e){
+  e.preventDefault();
+  e.currentTarget.style.borderColor='';
+  const targetIdx=parseInt(e.currentTarget.dataset.idx);
+  if(goalDragSrcIdx===null||isNaN(targetIdx)||goalDragSrcIdx===targetIdx)return;
+  const pending=DATA.goals.filter(g=>!g.achieved).sort((a,b)=>(a.order??0)-(b.order??0));
+  const [moved]=pending.splice(goalDragSrcIdx,1);
+  pending.splice(targetIdx,0,moved);
+  pending.forEach((g,i)=>{g.order=i});
+  goalDragSrcIdx=null;
+  saveData();renderGoalsPage();
+  toast('গোলের প্রায়োরিটি আপডেট হয়েছে ✓','info');
+}
+function goalDragEnd(e){
+  e.currentTarget.style.opacity='1';
+  document.querySelectorAll('.goal-page-card').forEach(r=>r.style.borderColor='');
+  goalDragSrcIdx=null;
 }
 function renderInvestmentsPage(){
   const el=document.getElementById('invest-grid');if(!el)return;
