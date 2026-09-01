@@ -745,16 +745,46 @@ setTimeout(function(){
           <div class="card-header"><span class="card-title" style="color:var(--accent5)">⚠️ Reset Current Data</span></div>
           <div style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:14px">Reset any section independently. Before each reset, FinVault saves that section as its own <b>Last Reset</b> snapshot, so you can restore only that section later without touching the others.</div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-            ${['transactions','budgets','goals','investments'].map(k=>`<div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">${RESET_LABELS[k]}</span><span class="chip" id="reset-chip-${k}" style="font-size:9px">No reset saved</span></div>
+            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Transactions</span><span class="chip" id="reset-chip-transactions" style="font-size:9px">No reset saved</span></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="btn btn-danger btn-sm" onclick="resetSectionData('${k}')">🗑️ Reset</button>
-                <button class="btn btn-success btn-sm" onclick="restoreSectionData('${k}')">↩️ Restore Last Reset</button>
-                <button class="btn btn-ghost btn-sm" onclick="exportSectionData('${k}')">⬇️ Export</button>
-                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('section-import-${k}').click()">⬆️ Import</button>
-                <input id="section-import-${k}" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'${k}')">
+                <button class="btn btn-danger btn-sm" onclick="resetSectionData('transactions')">🗑️ Reset</button>
+                <button class="btn btn-success btn-sm" onclick="restoreSectionData('transactions')">↩️ Restore Last Reset</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportSectionData('transactions')">⬇️ Export</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('section-import-transactions').click()">⬆️ Import</button>
+                <input id="section-import-transactions" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'transactions')">
               </div>
-            </div>`).join('')}
+            </div>
+            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Budgets</span><span class="chip" id="reset-chip-budgets" style="font-size:9px">No reset saved</span></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-danger btn-sm" onclick="resetSectionData('budgets')">🗑️ Reset</button>
+                <button class="btn btn-success btn-sm" onclick="restoreSectionData('budgets')">↩️ Restore Last Reset</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportSectionData('budgets')">⬇️ Export</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('section-import-budgets').click()">⬆️ Import</button>
+                <input id="section-import-budgets" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'budgets')">
+              </div>
+            </div>
+            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Goals</span><span class="chip" id="reset-chip-goals" style="font-size:9px">No reset saved</span></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-danger btn-sm" onclick="resetSectionData('goals')">🗑️ Reset</button>
+                <button class="btn btn-success btn-sm" onclick="restoreSectionData('goals')">↩️ Restore Last Reset</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportSectionData('goals')">⬇️ Export</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('section-import-goals').click()">⬆️ Import</button>
+                <input id="section-import-goals" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'goals')">
+              </div>
+            </div>
+            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Investments</span><span class="chip" id="reset-chip-investments" style="font-size:9px">No reset saved</span></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-danger btn-sm" onclick="resetSectionData('investments')">🗑️ Reset</button>
+                <button class="btn btn-success btn-sm" onclick="restoreSectionData('investments')">↩️ Restore Last Reset</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportSectionData('investments')">⬇️ Export</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('section-import-investments').click()">⬆️ Import</button>
+                <input id="section-import-investments" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'investments')">
+              </div>
+            </div>
           </div>
           <div style="height:1px;background:var(--border);margin:16px 0"></div>
           <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px">Need everything fresh at once? Your existing full-data reset remains available below.</div>
