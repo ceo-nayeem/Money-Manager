@@ -312,6 +312,11 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 @media(max-width:600px){.accounts-hero{grid-template-columns:1fr 1fr};.accounts-stats{grid-template-columns:1fr}}
 @media(max-width:420px){.accounts-hero{grid-template-columns:1fr};.card-balance-amount{font-size:18px}}
 
+/* ── Database page ── */
+.db-stat{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;margin-top:8px}
+.db-stat-label{font-size:10.5px;color:var(--text2)}
+.db-stat-value{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;text-align:right}
+
 /* ── Login Screen ── */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
 .login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 64px #00000080}
@@ -569,6 +574,10 @@ setTimeout(function(){
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" stroke-width="1.5"/><path stroke-linecap="round" stroke-width="1.5" d="M8 9h8M8 13h5"/></svg>
       Reports
     </div>
+    <div class="nav-item" data-page="database">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3" stroke-width="1.5"/><path stroke-linecap="round" stroke-width="1.5" d="M4 5v7c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7"/></svg>
+      Database
+    </div>
     <div class="nav-item" onclick="openModal('manage-cats')">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 12h.01M7 17h.01M11 7h6M11 12h6M11 17h6"/></svg>
       Categories
@@ -714,6 +723,31 @@ setTimeout(function(){
           <div id="account-txn-list" style="padding:6px 0"></div>
         </div>
       </div>
+      <!-- DATABASE -->
+      <div class="page" id="page-database">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Database &amp; Backup</span><span class="chip" id="db-last-export-chip">No export saved</span></div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px">Export your complete FinVault data as a JSON file. The latest export is also kept inside FinVault so you can reset your current data and restore/merge the old data later.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="exportFinVaultData()">⬇️ Export Data</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('db-import-file').click()">⬆️ Import Data</button>
+            <button class="btn btn-success" onclick="restoreLastExport()">↩️ Restore Last Export</button>
+          </div>
+          <input id="db-import-file" type="file" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Last Export in Database</span></div>
+          <div id="db-last-export-details" style="font-size:12px;color:var(--text3)">No saved export yet.</div>
+        </div>
+
+        <div class="card" style="border:1px solid #ef444430">
+          <div class="card-header"><span class="card-title" style="color:var(--accent5)">⚠️ Reset Current Data</span></div>
+          <div style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:12px">This resets your current transactions, accounts, budgets, goals, investments and related financial data to a fresh state. Your latest export stays safely inside Database and can be merged back later.</div>
+          <button class="btn btn-danger" onclick="resetAllFinVaultData()">🗑️ Reset All Current Data</button>
+        </div>
+      </div>
+
       <!-- ADMIN PANEL -->
       <div class="page" id="page-admin">
         <div id="admin-branding-section"></div>
@@ -762,6 +796,11 @@ setTimeout(function(){
         </div>
 
         <button class="btn btn-primary" onclick="saveProfilePage()" style="margin-bottom:20px">💾 Save Profile</button>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Database &amp; Backup</span><button class="btn btn-ghost btn-sm" onclick="switchPage('database')">Open Database →</button></div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.6">Your latest exported data is kept separately from the active dataset, so resetting current data does not remove the saved export.</div>
+        </div>
 
         <div class="card" id="pf-danger-zone" style="border:1px solid var(--red);display:none">
           <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
@@ -1045,6 +1084,203 @@ const STORAGE_KEY='finvault_v3';
 function loadData(){const s=localStorage.getItem(STORAGE_KEY);if(s)try{const d=JSON.parse(s);if(d&&Array.isArray(d.transactions))d.transactions.forEach(t=>{if(t.type==='liability')t.type='payable'});return d}catch(e){}return getDefaultData()}
 function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
 function getDefaultData(){return{profile:{name:'User',openingBalance:0,avatar:''},budgetMonthLimits:{},accounts:[{id:'dbbl',name:'DBBL Bank',shortName:'Dutch-Bangla Bank Ltd.',type:'bank',balance:0,note:'',color:'dbbl',number:''},{id:'bkash',name:'bKash',shortName:'bKash Mobile Banking',type:'mobile',balance:0,note:'',color:'bkash',number:''},{id:'nagad',name:'Nagad',shortName:'Nagad Digital Financial',type:'mobile',balance:0,note:'',color:'nagad',number:''},{id:'cash',name:'Cash',shortName:'Cash in Hand',type:'cash',balance:0,note:'',color:'cash',number:''}],transfers:[],transactions:[],budgets:[],goals:[],investments:[]}}
+
+// ── Database / Backup storage ─────────────────────────────────────────────
+const LAST_EXPORT_KEY='finvault_last_export_v1';
+const LAST_EXPORT_VERSION=1;
+function cloneData(data){return JSON.parse(JSON.stringify(data));}
+function getLastExportRecord(){
+  try{
+    const raw=localStorage.getItem(LAST_EXPORT_KEY);
+    if(!raw)return null;
+    const rec=JSON.parse(raw);
+    return rec&&rec.data&&typeof rec.data==='object'?rec:null;
+  }catch(e){return null}
+}
+function setLastExportRecord(record){
+  localStorage.setItem(LAST_EXPORT_KEY,JSON.stringify(record));
+  renderDatabasePage();
+}
+function buildExportRecord(){
+  return {
+    app:'FinVault',
+    type:'finvault-data-export',
+    version:LAST_EXPORT_VERSION,
+    exportedAt:new Date().toISOString(),
+    data:cloneData(DATA)
+  };
+}
+function buildExportFilename(dateIso){
+  const d=new Date(dateIso);
+  const stamp=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  const time=[String(d.getHours()).padStart(2,'0'),String(d.getMinutes()).padStart(2,'0'),String(d.getSeconds()).padStart(2,'0')].join('');
+  return `FinVault-Export-${stamp}-${time}.json`;
+}
+function saveLastExportLocally(record){
+  try{setLastExportRecord(record);return true}catch(e){
+    console.warn('Could not save last export locally:',e);
+    return false;
+  }
+}
+async function saveLastExportToCloud(record){
+  if(!db)return;
+  try{
+    const {doc,setDoc}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const backupPath=(DOC_PATH||LEGACY_DOC_PATH)+'_backup';
+    await setDoc(doc(db,backupPath),{app:record.app,type:record.type,version:record.version,exportedAt:record.exportedAt,data:record.data});
+  }catch(e){console.warn('Last export cloud backup failed:',e)}
+}
+async function getLastExportFromCloud(){
+  if(!db)return null;
+  try{
+    const {doc,getDoc}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const backupPath=(DOC_PATH||LEGACY_DOC_PATH)+'_backup';
+    const snap=await getDoc(doc(db,backupPath));
+    if(!snap.exists())return null;
+    const d=snap.data();
+    if(!d||!d.data)return null;
+    return d;
+  }catch(e){console.warn('Last export cloud read failed:',e);return null}
+}
+function normalizeImportedData(raw){
+  if(!raw||typeof raw!=='object')throw new Error('Invalid export file.');
+  const data=raw.data&&typeof raw.data==='object'?raw.data:raw;
+  if(!Array.isArray(data.transactions))throw new Error('Invalid FinVault export: transactions are missing.');
+  const normalized=cloneData(data);
+  if(!normalized.profile)normalized.profile={name:'User',openingBalance:0,avatar:''};
+  if(!normalized.accounts)normalized.accounts=[];
+  if(!normalized.transfers)normalized.transfers=[];
+  if(!normalized.budgets)normalized.budgets=[];
+  if(!normalized.goals)normalized.goals=[];
+  if(!normalized.investments)normalized.investments=[];
+  if(!normalized.categories)normalized.categories=cloneData(DEFAULT_CATEGORIES);
+  ['expense','income','invest'].forEach(k=>{if(!Array.isArray(normalized.categories[k]))normalized.categories[k]=cloneData(DEFAULT_CATEGORIES[k]);});
+  normalized.transactions.forEach(t=>{if(t.type==='liability')t.type='payable'});
+  return normalized;
+}
+function mergeById(current,incoming){
+  const result=Array.isArray(current)?current.map(x=>cloneData(x)):[];
+  const seen=new Set(result.map(x=>String(x&&x.id)));
+  (Array.isArray(incoming)?incoming:[]).forEach(item=>{
+    const key=item&&item.id!=null?String(item.id):null;
+    if(key&&seen.has(key))return;
+    result.push(cloneData(item));
+    if(key)seen.add(key);
+  });
+  return result;
+}
+function mergeByName(current,incoming){
+  const result=Array.isArray(current)?current.map(x=>cloneData(x)):[];
+  const seen=new Set(result.map(x=>String(x&&x.name||'').trim().toLowerCase()));
+  (Array.isArray(incoming)?incoming:[]).forEach(item=>{
+    const key=String(item&&item.name||'').trim().toLowerCase();
+    if(key&&seen.has(key))return;
+    result.push(cloneData(item));
+    if(key)seen.add(key);
+  });
+  return result;
+}
+function mergeFinVaultData(incoming){
+  const current=cloneData(DATA);
+  const merged={...current};
+  merged.transactions=mergeById(current.transactions,incoming.transactions);
+  merged.transfers=mergeById(current.transfers,incoming.transfers);
+  merged.budgets=mergeById(current.budgets,incoming.budgets);
+  merged.goals=mergeById(current.goals,incoming.goals);
+  merged.investments=mergeById(current.investments,incoming.investments);
+  merged.accounts=mergeById(current.accounts,incoming.accounts);
+  merged.categories={
+    expense:mergeByName(current.categories&&current.categories.expense,incoming.categories&&incoming.categories.expense),
+    income:mergeByName(current.categories&&current.categories.income,incoming.categories&&incoming.categories.income),
+    invest:mergeByName(current.categories&&current.categories.invest,incoming.categories&&incoming.categories.invest)
+  };
+  merged.budgetMonthLimits={...(incoming.budgetMonthLimits||{}),...(current.budgetMonthLimits||{})};
+  // Keep the currently active profile, but import a real opening balance when the current one is still zero.
+  merged.profile={...(incoming.profile||{}),...(current.profile||{})};
+  if((current.profile&&Number(current.profile.openingBalance))===0 && incoming.profile && Number(incoming.profile.openingBalance)!==0){
+    merged.profile.openingBalance=Number(incoming.profile.openingBalance)||0;
+  }
+  return merged;
+}
+function countDataRecords(data){
+  return ['transactions','accounts','transfers','budgets','goals','investments'].reduce((n,k)=>n+(Array.isArray(data[k])?data[k].length:0),0);
+}
+function formatBackupDate(iso){
+  try{return new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return iso||'Unknown'}
+}
+function renderDatabasePage(){
+  const rec=getLastExportRecord();
+  const chip=document.getElementById('db-last-export-chip');
+  const details=document.getElementById('db-last-export-details');
+  if(!chip||!details)return;
+  if(!rec){chip.textContent='No export saved';details.textContent='No saved export yet.';return;}
+  chip.textContent='Last export · '+formatBackupDate(rec.exportedAt);
+  details.innerHTML=`<div class="db-stat"><span class="db-stat-label">Saved</span><span class="db-stat-value">${formatBackupDate(rec.exportedAt)}</span></div><div class="db-stat"><span class="db-stat-label">Records included</span><span class="db-stat-value">${countDataRecords(rec.data).toLocaleString()}</span></div><div class="db-stat"><span class="db-stat-label">Transactions</span><span class="db-stat-value">${Array.isArray(rec.data.transactions)?rec.data.transactions.length:0}</span></div>`;
+}
+async function exportFinVaultData(){
+  const record=buildExportRecord();
+  const json=JSON.stringify(record,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=buildExportFilename(record.exportedAt);
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+  saveLastExportLocally(record);
+  await saveLastExportToCloud(record);
+  toast('Data exported and saved in Database ✓','success');
+}
+async function importFinVaultData(raw,sourceLabel='file'){
+  try{
+    const incoming=normalizeImportedData(raw);
+    const incomingRecords=countDataRecords(incoming);
+    if(!confirm(`Import ${incomingRecords.toLocaleString()} records from this ${sourceLabel}? Existing data will stay, and matching record IDs will not be duplicated.`))return;
+    DATA=mergeFinVaultData(incoming);
+    syncCatsFromData();
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
+    await window.saveData();
+    renderAll();
+    renderDatabasePage();
+    toast('Data imported and merged successfully ✓','success');
+  }catch(e){
+    console.warn('Import failed:',e);
+    toast(e.message||'Could not import this export file.','error');
+  }
+}
+function handleImportFile(event){
+  const file=event.target.files&&event.target.files[0];
+  event.target.value='';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{importFinVaultData(JSON.parse(reader.result), 'file')}catch(e){toast('Invalid JSON export file.','error')}
+  };
+  reader.onerror=()=>toast('Could not read the selected file.','error');
+  reader.readAsText(file);
+}
+async function restoreLastExport(){
+  let rec=getLastExportRecord();
+  if(!rec)rec=await getLastExportFromCloud();
+  if(!rec||!rec.data){toast('No last export is available.','error');return;}
+  await importFinVaultData(rec,'last saved export');
+}
+async function resetAllFinVaultData(){
+  const rec=getLastExportRecord();
+  if(!rec){
+    toast('Export your current data first. Your latest export is what stays after reset.','error');
+    return;
+  }
+  if(!confirm('Reset all current FinVault data? Your latest export will remain safely in Database and can be merged back later.'))return;
+  const typed=prompt('Type RESET to confirm.');
+  if(typed!=='RESET'){toast('Reset cancelled','info');return;}
+  DATA=getDefaultData();
+  syncCatsFromData();
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
+  await window.saveData();
+  renderAll();
+  renderDatabasePage();
+  toast('Current data reset. Your last export is still safe in Database ✓','success');
+}
 
 // ── Category & Investment-type storage ──────────────────────────────────────
 const DEFAULT_EXPENSE_CATS = [{name:'Food & Dining',emoji:'🍛',color:'#4f8ef7'},{name:'Transport',emoji:'🚗',color:'#10b981'},{name:'Shopping',emoji:'🛍️',color:'#f59e0b'},{name:'Housing',emoji:'🏠',color:'#ef4444'},{name:'Entertainment',emoji:'🎬',color:'#7c3aed'},{name:'Health',emoji:'💊',color:'#ec4899'},{name:'Education',emoji:'📚',color:'#06b6d4'},{name:'Utilities',emoji:'⚡',color:'#84cc16'},{name:'Personal Care',emoji:'💅',color:'#f472b6'},{name:'Other',emoji:'💸',color:'#94a3b8'}];
@@ -1795,7 +2031,7 @@ function switchPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
-  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],admin:['Admin Panel','Manage users, access & limits'],profile:['My Profile','Manage your personal information']};
+  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],database:['Database & Backup','Export, import & restore your data'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],admin:['Admin Panel','Manage users, access & limits'],profile:['My Profile','Manage your personal information']};
   const t=titles[page]||[page,''];
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
@@ -2245,6 +2481,7 @@ function renderPageContent(page){
   else if(page==='goals')renderGoalsPage();
   else if(page==='investments')renderInvestmentsPage();
   else if(page==='reports')renderReportsPage();
+  else if(page==='database')renderDatabasePage();
   else if(page==='accounts')renderAccountsPage();
   else if(page==='admin')renderAdminPanel();
   else if(page==='profile')renderProfilePage();
