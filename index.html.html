@@ -743,7 +743,21 @@ setTimeout(function(){
 
         <div class="card" style="border:1px solid #ef444430">
           <div class="card-header"><span class="card-title" style="color:var(--accent5)">⚠️ Reset Current Data</span></div>
-          <div style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:12px">This resets your current transactions, accounts, budgets, goals, investments and related financial data to a fresh state. Your latest export stays safely inside Database and can be merged back later.</div>
+          <div style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:14px">Reset any section independently. Before each reset, FinVault saves that section as its own <b>Last Reset</b> snapshot, so you can restore only that section later without touching the others.</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+            ${['transactions','budgets','goals','investments'].map(k=>`<div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">${RESET_LABELS[k]}</span><span class="chip" id="reset-chip-${k}" style="font-size:9px">No reset saved</span></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-danger btn-sm" onclick="resetSectionData('${k}')">🗑️ Reset</button>
+                <button class="btn btn-success btn-sm" onclick="restoreSectionData('${k}')">↩️ Restore Last Reset</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportSectionData('${k}')">⬇️ Export</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('section-import-${k}').click()">⬆️ Import</button>
+                <input id="section-import-${k}" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'${k}')">
+              </div>
+            </div>`).join('')}
+          </div>
+          <div style="height:1px;background:var(--border);margin:16px 0"></div>
+          <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px">Need everything fresh at once? Your existing full-data reset remains available below.</div>
           <button class="btn btn-danger" onclick="resetAllFinVaultData()">🗑️ Reset All Current Data</button>
         </div>
       </div>
@@ -1213,9 +1227,10 @@ function renderDatabasePage(){
   const chip=document.getElementById('db-last-export-chip');
   const details=document.getElementById('db-last-export-details');
   if(!chip||!details)return;
-  if(!rec){chip.textContent='No export saved';details.textContent='No saved export yet.';return;}
+  if(!rec){chip.textContent='No export saved';details.textContent='No saved export yet.';renderSectionResetChips();return;}
   chip.textContent='Last export · '+formatBackupDate(rec.exportedAt);
   details.innerHTML=`<div class="db-stat"><span class="db-stat-label">Saved</span><span class="db-stat-value">${formatBackupDate(rec.exportedAt)}</span></div><div class="db-stat"><span class="db-stat-label">Records included</span><span class="db-stat-value">${countDataRecords(rec.data).toLocaleString()}</span></div><div class="db-stat"><span class="db-stat-label">Transactions</span><span class="db-stat-value">${Array.isArray(rec.data.transactions)?rec.data.transactions.length:0}</span></div>`;
+  renderSectionResetChips();
 }
 async function exportFinVaultData(){
   const record=buildExportRecord();
@@ -1264,6 +1279,122 @@ async function restoreLastExport(){
   if(!rec||!rec.data){toast('No last export is available.','error');return;}
   await importFinVaultData(rec,'last saved export');
 }
+const RESET_KEYS = {
+  transactions:'finvault_last_reset_transactions_v1',
+  budgets:'finvault_last_reset_budgets_v1',
+  goals:'finvault_last_reset_goals_v1',
+  investments:'finvault_last_reset_investments_v1'
+};
+const RESET_LABELS = {
+  transactions:'Transactions',
+  budgets:'Budgets',
+  goals:'Goals',
+  investments:'Investments'
+};
+function getLastReset(section){
+  try{
+    const raw=localStorage.getItem(RESET_KEYS[section]);
+    if(!raw)return null;
+    const rec=JSON.parse(raw);
+    return rec&&Array.isArray(rec.data)?rec:null;
+  }catch(e){return null}
+}
+function saveLastReset(section,data){
+  const rec={app:'FinVault',type:'finvault-section-reset-backup',section,version:1,savedAt:new Date().toISOString(),data:cloneData(data)};
+  localStorage.setItem(RESET_KEYS[section],JSON.stringify(rec));
+  renderDatabasePage();
+  return rec;
+}
+async function saveLastResetToCloud(section,rec){
+  if(!db)return;
+  try{
+    const {doc,setDoc}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const backupPath=(DOC_PATH||LEGACY_DOC_PATH)+'_reset_'+section;
+    await setDoc(doc(db,backupPath),rec);
+  }catch(e){console.warn('Section reset backup cloud save failed:',e)}
+}
+async function getLastResetFromCloud(section){
+  if(!db)return null;
+  try{
+    const {doc,getDoc}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const backupPath=(DOC_PATH||LEGACY_DOC_PATH)+'_reset_'+section;
+    const snap=await getDoc(doc(db,backupPath));
+    if(!snap.exists())return null;
+    const rec=snap.data();
+    return rec&&Array.isArray(rec.data)?rec:null;
+  }catch(e){console.warn('Section reset backup cloud read failed:',e);return null}
+}
+function renderSectionResetChips(){
+  Object.keys(RESET_KEYS).forEach(section=>{
+    const chip=document.getElementById('reset-chip-'+section);
+    if(!chip)return;
+    const rec=getLastReset(section);
+    chip.textContent=rec?'Last reset · '+formatBackupDate(rec.savedAt):'No reset saved';
+  });
+}
+async function resetSectionData(section){
+  if(!RESET_KEYS[section])return;
+  const label=RESET_LABELS[section];
+  if(!confirm(`Reset all ${label.toLowerCase()}? Only this section will be cleared. A Last Reset backup will be saved first.`))return;
+  const snapshot=saveLastReset(section,DATA[section]||[]);
+  await saveLastResetToCloud(section,snapshot);
+  DATA[section]=[];
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
+  await window.saveData();
+  renderAll();
+  renderDatabasePage();
+  toast(`${label} reset successfully. Restore Last Reset is available.` ,'success');
+}
+async function restoreSectionData(section){
+  if(!RESET_KEYS[section])return;
+  let rec=getLastReset(section);
+  if(!rec)rec=await getLastResetFromCloud(section);
+  if(!rec||!Array.isArray(rec.data)){toast(`No Last Reset backup for ${RESET_LABELS[section]}.`,'error');return;}
+  if(!confirm(`Restore the last reset ${RESET_LABELS[section].toLowerCase()}? Current ${RESET_LABELS[section].toLowerCase()} will be replaced.`))return;
+  DATA[section]=cloneData(rec.data);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
+  await window.saveData();
+  renderAll();
+  renderDatabasePage();
+  toast(`${RESET_LABELS[section]} restored successfully ✓`,'success');
+}
+function buildSectionExportRecord(section){
+  return {app:'FinVault',type:'finvault-section-export',section,version:1,exportedAt:new Date().toISOString(),data:cloneData(DATA[section]||[])};
+}
+function exportSectionData(section){
+  const record=buildSectionExportRecord(section);
+  const blob=new Blob([JSON.stringify(record,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`FinVault-${section.charAt(0).toUpperCase()+section.slice(1)}-${record.exportedAt.slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  toast(`${RESET_LABELS[section]} exported ✓`,'success');
+}
+function handleSectionImportFile(event,section){
+  const file=event.target.files&&event.target.files[0];
+  event.target.value='';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    try{
+      const raw=JSON.parse(reader.result);
+      if(raw.section&&raw.section!==section)throw new Error('This file belongs to '+(RESET_LABELS[raw.section]||raw.section)+', not '+RESET_LABELS[section]+'.');
+      const data=Array.isArray(raw.data)?raw.data:raw;
+      if(!Array.isArray(data))throw new Error('Invalid section export file.');
+      if(!confirm(`Import ${data.length.toLocaleString()} ${RESET_LABELS[section].toLowerCase()}? Existing ${RESET_LABELS[section].toLowerCase()} will remain and matching IDs will not be duplicated.`))return;
+      DATA[section]=mergeById(DATA[section],data);
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
+      await window.saveData();
+      renderAll();
+      renderDatabasePage();
+      toast(`${RESET_LABELS[section]} imported and merged ✓`,'success');
+    }catch(e){toast(e.message||'Could not import this section file.','error')}
+  };
+  reader.onerror=()=>toast('Could not read the selected file.','error');
+  reader.readAsText(file);
+}
+
 async function resetAllFinVaultData(){
   const rec=getLastExportRecord();
   if(!rec){
