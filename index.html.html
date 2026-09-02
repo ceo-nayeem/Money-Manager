@@ -13,7 +13,7 @@
   --border:#ffffff0d;--border2:#ffffff1a;--border3:#ffffff28;
   --text:#eef2ff;--text2:#7b88a8;--text3:#404d6a;
   --accent:#4f8ef7;--accent2:#7c3aed;--accent3:#10b981;--accent4:#f59e0b;--accent5:#ef4444;--accent6:#ec4899;
-  --card-radius:14px;--sidebar-w:240px;
+  --card-radius:20px;--radius-sm:12px;--radius-md:16px;--radius-lg:24px;--sidebar-w:240px;
 }
 body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden}
 .app{display:flex;min-height:100vh}
@@ -39,10 +39,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .page-title{font-size:17px;font-weight:700;letter-spacing:-0.3px}
 .page-sub{font-size:11px;color:var(--text2);margin-top:2px}
 .header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.btn{padding:8px 16px;border-radius:9px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:'Sora',sans-serif;transition:all 0.18s;white-space:nowrap}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{background:#3a7ce8;transform:translateY(-1px);box-shadow:0 4px 16px #4f8ef740}
-.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.btn{padding:8px 18px;border-radius:12px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:'Sora',sans-serif;transition:all 0.18s;white-space:nowrap}
+.btn-primary{background:linear-gradient(180deg,#5b9bff,#4f8ef7);color:#fff;box-shadow:0 4px 14px #4f8ef73a,inset 0 1px 0 rgba(255,255,255,0.22)}
+.btn-primary:hover{background:linear-gradient(180deg,#6aa4ff,#3a7ce8);transform:translateY(-1px);box-shadow:0 8px 22px #4f8ef755}
+.btn-ghost{background:rgba(255,255,255,0.045);color:var(--text2);border:1px solid rgba(255,255,255,0.09);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .btn-ghost:hover{color:var(--text);border-color:var(--border3)}
 .btn-sm{padding:6px 12px;font-size:11px}
 .btn-danger{background:#ef444420;color:#ef4444;border:1px solid #ef444430}
@@ -64,14 +64,20 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .kpi-value{font-size:22px;font-weight:700;letter-spacing:-1px;font-family:'JetBrains Mono',monospace}
 .kpi-change{font-size:11px;margin-top:6px}
 .up{color:#10b981}.down{color:#ef4444}
-.kpi-icon{position:absolute;right:14px;top:14px;font-size:18px;opacity:0.12}
+.kpi-icon{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(255,255,255,0.055);backdrop-filter:blur(6px)}
+.kpi-card.blue .kpi-icon{background:#4f8ef71e;color:#60a5fa}
+.kpi-card.purple .kpi-icon{background:#7c3aed1e;color:#a78bfa}
+.kpi-card.green .kpi-icon{background:#10b9811e;color:#34d399}
+.kpi-card.amber .kpi-icon{background:#f59e0b1e;color:#fcd34d}
+.kpi-card.orange .kpi-icon{background:#f59e0b1e;color:#fcd34d}
+.kpi-card.cyan .kpi-icon{background:#06b6d41e;color:#67e8f9}
 .charts-row{display:grid;grid-template-columns:1fr minmax(0,320px);gap:14px;margin-bottom:20px;height:auto}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);padding:18px}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px}
 .card-title{font-size:13px;font-weight:600;flex-shrink:0}
-.tab-group{display:flex;gap:3px;background:var(--bg3);border-radius:7px;padding:3px}
-.tab{padding:4px 10px;font-size:11px;border-radius:5px;cursor:pointer;color:var(--text2);transition:all 0.15s}
-.tab.active{background:var(--bg4);color:var(--text)}
+.tab-group{display:flex;gap:3px;background:rgba(255,255,255,0.045);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:3px}
+.tab{padding:5px 11px;font-size:11px;border-radius:8px;cursor:pointer;color:var(--text2);transition:all 0.15s}
+.tab.active{background:rgba(255,255,255,0.1);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.08)}
 .donut-wrap{position:relative;width:150px;height:150px;margin:0 auto 14px}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .donut-total{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace}
@@ -86,7 +92,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .txn-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background 0.15s}
 .txn-item:hover{background:var(--bg3)}
 .txn-left{display:flex;align-items:center;gap:10px}
-.txn-emoji{width:34px;height:34px;border-radius:9px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.txn-emoji{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
 .txn-name{font-size:12.5px;font-weight:500}
 .txn-cat{font-size:10.5px;color:var(--text2)}
 .txn-amount{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;text-align:right}
@@ -102,19 +108,25 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .progress-bar{height:5px;background:var(--bg4);border-radius:4px;overflow:hidden}
 .progress-fill{height:100%;border-radius:4px;transition:width 0.8s ease}
 .goals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.goal-card{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:14px;transition:all 0.2s}
+.goal-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;transition:all 0.2s}
 .goal-card:hover{border-color:var(--border2)}
 .goal-bar{height:4px;background:var(--bg5);border-radius:4px;overflow:hidden;margin-bottom:8px}
 .goal-fill{height:100%;border-radius:4px}
 .txn-page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .filter-group{display:flex;gap:8px;flex-wrap:wrap}
-.filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;outline:none;cursor:pointer}
-.txn-full-list{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);overflow:hidden}
-.txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);transition:background 0.15s;gap:8px;min-width:0}
-.txn-full-item:last-child{border-bottom:none}
-.txn-full-item:hover{background:var(--bg3)}
+.filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:6px 12px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;outline:none;cursor:pointer}
+.txn-full-list{display:flex;flex-direction:column;gap:10px}
+.txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);transition:background 0.15s,border-color 0.15s;gap:8px;min-width:0}
+.txn-full-item:hover{background:var(--bg3);border-color:var(--border2)}
+.txn-actions{display:flex;align-items:center;gap:5px;flex-shrink:0;opacity:0;transform:translateX(6px);transition:opacity 0.2s ease,transform 0.2s ease;pointer-events:none}
+.txn-full-item:hover .txn-actions{opacity:1;transform:translateX(0);pointer-events:auto}
+.txn-icon-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all 0.15s}
+.txn-icon-btn svg{width:14px;height:14px}
+.txn-icon-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border3);transform:translateY(-1px)}
+.txn-icon-btn.danger:hover{background:#ef444420;color:#ef4444;border-color:#ef444450}
+@media(max-width:768px){.txn-actions{opacity:1;transform:none;pointer-events:auto}}
 .txn-summary-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.txn-summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex:1;min-width:130px}
+.txn-summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 16px;flex:1;min-width:130px}
 .txn-summary-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
 .txn-summary-val{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .budget-page-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
@@ -139,27 +151,27 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .reports-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .insight-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
 .insight-item:last-child{border-bottom:none}
-.insight-icon{font-size:18px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border-radius:9px;flex-shrink:0}
+.insight-icon{font-size:18px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border-radius:var(--radius-sm);flex-shrink:0}
 .insight-title{font-weight:600;margin-bottom:2px;font-size:12.5px}
 .insight-text{font-size:11.5px;line-height:1.5}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:16px}
 .modal-overlay.open{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:26px;width:100%;max-width:420px;position:relative;max-height:90vh;overflow-y:auto}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:26px;width:100%;max-width:420px;position:relative;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:15px;font-weight:700;margin-bottom:18px}
 .form-group{margin-bottom:14px}
 .form-label{font-size:10.5px;color:var(--text2);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:5px;display:block;font-weight:500}
-.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 13px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 13px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
 .form-input:focus{border-color:var(--accent)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .type-toggle{display:flex;gap:6px}
-.type-btn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s}
+.type-btn{flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s}
 .type-btn.active.income{background:#10b98118;border-color:#10b981;color:#10b981}
 .type-btn.active.expense{background:#ef444418;border-color:#ef4444;color:#ef4444}
 .type-btn.active.payable{background:#f59e0b18;border-color:#f59e0b;color:#f59e0b}
 .type-btn.active.receivable{background:#06b6d418;border-color:#06b6d4;color:#06b6d4}
 .kpi-card.orange::before{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
 .kpi-card.cyan::before{background:linear-gradient(90deg,#06b6d4,#67e8f9)}
-.modal-close{position:absolute;top:14px;right:14px;background:var(--bg4);border:none;color:var(--text2);font-size:14px;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--bg4);border:none;color:var(--text2);font-size:14px;cursor:pointer;width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center}
 .modal-close:hover{color:var(--text)}
 .modal-actions{display:flex;gap:8px;margin-top:18px}
 .chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg4);border:1px solid var(--border)}
@@ -263,7 +275,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 /* ══ ACCOUNTS PAGE ══ */
 .accounts-hero{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-bottom:28px}
 .payment-card{
-  width:100%;aspect-ratio:1.586/1;border-radius:18px;position:relative;overflow:hidden;cursor:pointer;
+  width:100%;aspect-ratio:1.586/1;border-radius:var(--card-radius);position:relative;overflow:hidden;cursor:pointer;
   transition:transform 0.25s cubic-bezier(.34,1.56,.64,1),box-shadow 0.25s;
   box-shadow:0 8px 32px #00000060;
   font-family:'JetBrains Mono',monospace;
@@ -313,13 +325,13 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 @media(max-width:420px){.accounts-hero{grid-template-columns:1fr};.card-balance-amount{font-size:18px}}
 
 /* ── Database page ── */
-.db-stat{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;margin-top:8px}
+.db-stat{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px}
 .db-stat-label{font-size:10.5px;color:var(--text2)}
 .db-stat-value{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;text-align:right}
 
 /* ── Login Screen ── */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
-.login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 64px #00000080}
+.login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 64px #00000080}
 .login-logo{text-align:center;margin-bottom:28px}
 .login-logo-mark{font-size:26px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#4f8ef7,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .login-logo-sub{font-size:10px;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase;margin-top:4px}
@@ -327,7 +339,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .login-sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:24px}
 .login-error{background:#ef444418;border:1px solid #ef444430;color:#ef4444;border-radius:8px;padding:9px 13px;font-size:12px;margin-bottom:14px;display:none}
 .login-error.show{display:block}
-.login-btn{width:100%;padding:11px;border-radius:10px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Sora',sans-serif;transition:all 0.18s;margin-top:6px}
+.login-btn{width:100%;padding:12px;border-radius:var(--radius-sm);background:linear-gradient(180deg,#5b9bff,#4f8ef7);color:#fff;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Sora',sans-serif;transition:all 0.18s;margin-top:6px;box-shadow:0 4px 14px #4f8ef73a,inset 0 1px 0 rgba(255,255,255,0.22)}
 .login-btn:hover{background:#3a7ce8;transform:translateY(-1px);box-shadow:0 4px 16px #4f8ef740}
 .login-footer{text-align:center;font-size:11px;color:var(--text3);margin-top:18px}
 .cred-hint{font-size:11px;color:var(--text2);margin-top:4px}
@@ -443,6 +455,30 @@ body::before{
 .loader-sub{font-size:9.5px;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase}
 .loader-ring{width:32px;height:32px;border-radius:50%;border:2.5px solid #ffffff14;border-top-color:var(--accent);animation:spin 0.7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════════════════════════════════
+   ✨ DESIGN ENHANCEMENTS v3 — unified iOS-style frosted glass surfaces
+   + bento grid utility (pairs settings cards instead of stacking them)
+   ══════════════════════════════════════════════════════════════════ */
+.card,.kpi-card,.budget-page-card,.goal-page-card,.invest-card,
+.txn-full-item,.txn-summary-item,.account-txn-section,
+.db-reset-item,.db-stat,.goal-card{
+  background:linear-gradient(165deg, rgba(34,42,64,0.62), rgba(15,19,32,0.55));
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-color:rgba(255,255,255,0.07);
+  box-shadow:0 1px 0 0 rgba(255,255,255,0.05) inset, 0 16px 36px -22px rgba(0,0,0,0.7);
+}
+.db-reset-item{padding:14px;border-radius:var(--radius-md);border:1px solid var(--border)}
+.txn-full-item:hover{background:linear-gradient(165deg, rgba(40,49,74,0.68), rgba(18,23,38,0.62))}
+.card:hover,.kpi-card:hover,.budget-page-card:hover,.goal-page-card:hover,.invest-card:hover{
+  border-color:rgba(255,255,255,0.13);
+}
+
+/* Bento grid — used on Database/Profile pages so related settings cards sit
+   side by side instead of stacking one after another */
+.bento-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start}
+.bento-2>.card{margin-bottom:0}
+@media(max-width:900px){.bento-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -725,27 +761,29 @@ setTimeout(function(){
       </div>
       <!-- DATABASE -->
       <div class="page" id="page-database">
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Database &amp; Backup</span><span class="chip" id="db-last-export-chip">No export saved</span></div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px">Export your complete FinVault data as a JSON file. The latest export is also kept inside FinVault so you can reset your current data and restore/merge the old data later.</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="exportFinVaultData()">⬇️ Export Data</button>
-            <button class="btn btn-ghost" onclick="document.getElementById('db-import-file').click()">⬆️ Import Data</button>
-            <button class="btn btn-success" onclick="restoreLastExport()">↩️ Restore Last Export</button>
+        <div class="bento-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Database &amp; Backup</span><span class="chip" id="db-last-export-chip">No export saved</span></div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px">Export your complete FinVault data as a JSON file. The latest export is also kept inside FinVault so you can reset your current data and restore/merge the old data later.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="exportFinVaultData()">⬇️ Export Data</button>
+              <button class="btn btn-ghost" onclick="document.getElementById('db-import-file').click()">⬆️ Import Data</button>
+              <button class="btn btn-success" onclick="restoreLastExport()">↩️ Restore Last Export</button>
+            </div>
+            <input id="db-import-file" type="file" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
           </div>
-          <input id="db-import-file" type="file" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
-        </div>
 
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Last Export in Database</span></div>
-          <div id="db-last-export-details" style="font-size:12px;color:var(--text3)">No saved export yet.</div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Last Export in Database</span></div>
+            <div id="db-last-export-details" style="font-size:12px;color:var(--text3)">No saved export yet.</div>
+          </div>
         </div>
 
         <div class="card" style="border:1px solid #ef444430">
           <div class="card-header"><span class="card-title" style="color:var(--accent5)">⚠️ Reset Current Data</span></div>
           <div style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:14px">Reset any section independently. Before each reset, FinVault saves that section as its own <b>Last Reset</b> snapshot, so you can restore only that section later without touching the others.</div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+            <div class="db-reset-item">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Transactions</span><span class="chip" id="reset-chip-transactions" style="font-size:9px">No reset saved</span></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="btn btn-danger btn-sm" onclick="resetSectionData('transactions')">🗑️ Reset</button>
@@ -755,7 +793,7 @@ setTimeout(function(){
                 <input id="section-import-transactions" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'transactions')">
               </div>
             </div>
-            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+            <div class="db-reset-item">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Budgets</span><span class="chip" id="reset-chip-budgets" style="font-size:9px">No reset saved</span></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="btn btn-danger btn-sm" onclick="resetSectionData('budgets')">🗑️ Reset</button>
@@ -765,7 +803,7 @@ setTimeout(function(){
                 <input id="section-import-budgets" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'budgets')">
               </div>
             </div>
-            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+            <div class="db-reset-item">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Goals</span><span class="chip" id="reset-chip-goals" style="font-size:9px">No reset saved</span></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="btn btn-danger btn-sm" onclick="resetSectionData('goals')">🗑️ Reset</button>
@@ -775,7 +813,7 @@ setTimeout(function(){
                 <input id="section-import-goals" type="file" accept="application/json,.json" style="display:none" onchange="handleSectionImportFile(event,'goals')">
               </div>
             </div>
-            <div class="db-reset-item" style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+            <div class="db-reset-item">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;font-weight:600">Investments</span><span class="chip" id="reset-chip-investments" style="font-size:9px">No reset saved</span></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="btn btn-danger btn-sm" onclick="resetSectionData('investments')">🗑️ Reset</button>
@@ -812,39 +850,43 @@ setTimeout(function(){
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Avatar</span></div>
-          <div style="display:flex;align-items:center;gap:16px;margin:10px 0 14px">
-            <div class="avatar" id="pf-avatar-preview" style="width:56px;height:56px;font-size:24px">🙂</div>
-            <div style="font-size:12px;color:var(--text3)">Pick one below, or type your own emoji.</div>
+        <div class="bento-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Avatar</span></div>
+            <div style="display:flex;align-items:center;gap:16px;margin:10px 0 14px">
+              <div class="avatar" id="pf-avatar-preview" style="width:56px;height:56px;font-size:24px">🙂</div>
+              <div style="font-size:12px;color:var(--text3)">Pick one below, or type your own emoji.</div>
+            </div>
+            <div id="pf-avatar-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:14px"></div>
+            <div class="form-group"><label class="form-label">Custom Emoji</label><input class="form-input" type="text" id="pf-avatar-custom" placeholder="Paste any emoji, e.g. 🦄" maxlength="8" oninput="handleAvatarCustomInput(this.value)"></div>
           </div>
-          <div id="pf-avatar-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:14px"></div>
-          <div class="form-group"><label class="form-label">Custom Emoji</label><input class="form-input" type="text" id="pf-avatar-custom" placeholder="Paste any emoji, e.g. 🦄" maxlength="8" oninput="handleAvatarCustomInput(this.value)"></div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Personal Information</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+              <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="pf-name" placeholder="Your name"></div>
+              <div class="form-group" id="pf-phone-group"><label class="form-label">Phone Number</label><input class="form-input" type="tel" id="pf-phone" placeholder="e.g. 01XXXXXXXXX"></div>
+              <div class="form-group" id="pf-job-group" style="grid-column:1/-1"><label class="form-label">Job / Business Details</label><input class="form-input" type="text" id="pf-job" placeholder="e.g. Job title, company, or business"></div>
+            </div>
+          </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Personal Information</span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-            <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="pf-name" placeholder="Your name"></div>
-            <div class="form-group" id="pf-phone-group"><label class="form-label">Phone Number</label><input class="form-input" type="tel" id="pf-phone" placeholder="e.g. 01XXXXXXXXX"></div>
-            <div class="form-group" id="pf-job-group" style="grid-column:1/-1"><label class="form-label">Job / Business Details</label><input class="form-input" type="text" id="pf-job" placeholder="e.g. Job title, company, or business"></div>
+        <div class="bento-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Financial Settings</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+              <div class="form-group"><label class="form-label">Opening Balance (৳)</label><input class="form-input" type="number" id="pf-balance" placeholder="0"></div>
+              <div class="form-group"><label class="form-label" style="opacity:0.6">Member Since</label><input class="form-input" type="text" id="pf-created" disabled style="opacity:0.6"></div>
+            </div>
           </div>
-        </div>
 
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Financial Settings</span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-            <div class="form-group"><label class="form-label">Opening Balance (৳)</label><input class="form-input" type="number" id="pf-balance" placeholder="0"></div>
-            <div class="form-group"><label class="form-label" style="opacity:0.6">Member Since</label><input class="form-input" type="text" id="pf-created" disabled style="opacity:0.6"></div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Database &amp; Backup</span><button class="btn btn-ghost btn-sm" onclick="switchPage('database')">Open Database →</button></div>
+            <div style="font-size:12px;color:var(--text3);line-height:1.6">Your latest exported data is kept separately from the active dataset, so resetting current data does not remove the saved export.</div>
           </div>
         </div>
 
         <button class="btn btn-primary" onclick="saveProfilePage()" style="margin-bottom:20px">💾 Save Profile</button>
-
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Database &amp; Backup</span><button class="btn btn-ghost btn-sm" onclick="switchPage('database')">Open Database →</button></div>
-          <div style="font-size:12px;color:var(--text3);line-height:1.6">Your latest exported data is kept separately from the active dataset, so resetting current data does not remove the saved export.</div>
-        </div>
 
         <div class="card" id="pf-danger-zone" style="border:1px solid var(--red);display:none">
           <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
@@ -2421,7 +2463,7 @@ function renderTransactionsPage(){
     const inGroupBadge=t.groupParentId?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:#7c3aed20;color:#a78bfa;font-weight:600;margin-left:5px">🔗 In group</span>`:'';
     const subRows=isGroup?`<div id="grp-${t.id}" style="display:none;padding:6px 0 2px 44px;border-top:1px solid var(--border);">`+t.splits.map(s=>{const accName=s.account?(DATA.accounts.find(a=>a.id===s.account)||{name:s.account}).name:'Cash';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:12px;"><span style="color:var(--text2)">${s.emoji||getCatEmoji(s.cat)} ${s.desc||s.cat} <span style="color:var(--text3);font-size:10px">· ${s.cat}</span></span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;padding:1px 6px;border-radius:6px;background:var(--bg4);color:var(--text2)">${accName}</span><span style="font-family:JetBrains Mono;font-weight:600;color:${color}">-${fmt(s.amount)}</span></span></div>`;}).join('')+`</div>`:'';
     const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleGrp('${t.id}',this)">▼ Show</button>`:'';
-    return`<div><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<button class="btn btn-ghost btn-sm" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTxn(${t.id})">Del</button></div></div>${subRows}</div>`;
+    return`<div><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions"><button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
 }
