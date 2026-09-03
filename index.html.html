@@ -17,7 +17,7 @@
 }
 body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden}
 .app{display:flex;min-height:100vh}
-.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:50;transition:transform 0.3s ease}
+.sidebar{width:var(--sidebar-w);background:var(--bg2);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;height:100dvh;z-index:50;transition:transform 0.3s ease;isolation:isolate;will-change:transform;-webkit-transform:translateZ(0);transform:translateZ(0);overflow-y:auto;overflow-x:hidden}
 .main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column}
 .logo{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
 .logo-mark{font-size:19px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#4f8ef7,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -200,16 +200,20 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 }
 @media(max-width:768px){
   :root{--sidebar-w:0px}
-  .sidebar{transform:translateX(-240px);width:240px}
-  .sidebar.open{transform:translateX(0)}
+  .sidebar{transform:translateX(-100%) translateZ(0);width:240px;max-width:82vw;box-shadow:none}
+  .sidebar.open{transform:translateX(0) translateZ(0);box-shadow:12px 0 40px #00000060}
   .sidebar-overlay.open{display:block}
-  .hamburger{display:flex}
+  .hamburger{display:flex;width:38px;height:38px;padding:0;top:max(14px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left))}
   .main{margin-left:0}
   .header{padding:14px 16px 14px 56px}
   .content{padding:16px}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .goals-grid,.goals-page-grid{grid-template-columns:1fr 1fr}
   .modal{padding:20px}
+  .nav-item{padding:11px 20px;min-height:44px}
+  .btn,.type-btn,.tab,.account-tab{min-height:40px}
+  .form-input{font-size:16px}
+  .sidebar-footer{padding-bottom:max(16px,env(safe-area-inset-bottom))}
 }
 @media(max-width:480px){
   .kpi-grid{grid-template-columns:1fr 1fr}
@@ -369,12 +373,23 @@ body::before{
 }
 .app{position:relative;z-index:1}
 
-/* Glass surfaces */
-.sidebar{
+/* Glass surfaces
+   NOTE: the frosted-glass look is painted on ::before, not on .sidebar itself.
+   .sidebar carries the slide-in `transform` (for the mobile drawer); putting
+   `backdrop-filter` directly on a transformed/animated element triggers a
+   real WebKit/Chromium mobile bug where the element's own children stop
+   painting and only the blurred backdrop is visible — which is exactly the
+   "sidebar opens but shows no options, just a blur" symptom on phones.
+   Splitting it into a non-transformed pseudo-element avoids that bug on
+   every mobile browser while keeping the identical visual result. */
+.sidebar::before{
+  content:'';
+  position:absolute;inset:0;z-index:-1;
   background:linear-gradient(180deg, var(--glass), rgba(15,19,32,0.85));
   backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
   border-right:1px solid var(--glass-border);
   box-shadow:8px 0 32px #00000030;
+  pointer-events:none;
 }
 .header{
   background:rgba(8,11,18,0.66);
@@ -479,6 +494,86 @@ body::before{
 .bento-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start}
 .bento-2>.card{margin-bottom:0}
 @media(max-width:900px){.bento-2{grid-template-columns:1fr}}
+
+/* ══════════════════════════════════════════════════════════════════
+   📱 RESPONSIVE OVERHAUL — fluid, all-device pass
+   Grid-blowout protection, a phablet/tablet KPI layout, deeper phone
+   tuning (≤380px / ≤340px), iOS/Android UX fixes, safe-area support
+   for notched phones, and bigger touch targets. Placed last on purpose
+   so it wins the cascade over the rules above where ranges overlap.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* CSS Grid items default to min-width:auto, so one long ৳ amount in
+   JetBrains Mono can force its column wider than its 1fr share and push
+   the whole page into horizontal scroll. min-width:0 lets cards shrink
+   properly; overflow-wrap lets a value break instead of overflowing. */
+.kpi-grid>*,.goals-grid>*,.goals-page-grid>*,.invest-grid>*,.budget-page-grid>*,
+.accounts-hero>*,.accounts-stats>*,.bento-2>*,.charts-row>*,.bottom-row>*,.reports-grid>*{
+  min-width:0;
+}
+.kpi-value,.card-balance-amount,.invest-amount,.donut-total,.txn-amount,
+.budget-nums,.db-stat-value,.txn-summary-val{overflow-wrap:anywhere}
+img,svg,canvas,.payment-card{max-width:100%}
+
+/* Smooth momentum scroll on touch devices for the drawer + modal + tab strips */
+.sidebar,.account-tabs,.modal{-webkit-overflow-scrolling:touch}
+
+/* Large phones / phablets / small tablets in portrait (601–900px) — the
+   2-col KPI grid used all the way from 481px to 768px leaves real space
+   unused at this width, so give this band 3 columns instead of 2. */
+@media(min-width:601px) and (max-width:900px){
+  .kpi-grid{grid-template-columns:repeat(3,1fr)}
+}
+
+/* Header safety net: on the 481–600px band the two status chips + the
+   primary button can get tight before the ≤480px rule hides the chips,
+   and flex-wrap is a free fallback if any label ever runs long. */
+@media(max-width:600px){
+  .header-right .chip{display:none}
+  .header{flex-wrap:wrap;row-gap:8px}
+}
+
+/* Small phones — iPhone SE/mini and most compact Android phones (≤380px) */
+@media(max-width:380px){
+  .kpi-grid{grid-template-columns:1fr}
+  .content{padding:10px}
+  .kpi-card,.card{padding:12px}
+  .header{padding:10px 10px 10px 50px}
+  .page-title{font-size:13px}
+  .modal{padding:14px;border-radius:10px}
+  .modal-title{font-size:13px}
+  .donut-wrap{width:110px;height:110px}
+  .card canvas{height:170px!important}
+  .type-btn{font-size:10.5px;padding:7px 4px}
+  .login-box{padding:22px 16px;margin:10px}
+  .login-logo-mark{font-size:22px}
+  .txn-emoji{width:30px;height:30px;font-size:13px}
+  .goal-page-actions .btn{padding:5px 6px;font-size:10px}
+}
+
+/* Ultra-small / very old devices — final safety net */
+@media(max-width:340px){
+  .kpi-grid,.goals-grid,.goals-page-grid{gap:8px}
+  .kpi-card{padding:10px}
+  .kpi-value{font-size:15px}
+  .content{padding:8px}
+  .header{padding:8px 8px 8px 46px}
+}
+
+/* The split/group-transaction row (linked-transaction editor) is laid out
+   as a fixed 5-column grid via inline JS styles; that's too tight for the
+   description/category/method fields on a phone, so stack it to 2 columns.
+   !important is required to win over the element's own inline style. */
+@media(max-width:480px){
+  .group-row{grid-template-columns:1fr 1fr!important;gap:6px!important}
+}
+
+/* Thumb-friendly toast on small screens instead of a floating 300px box,
+   and keep it clear of the home-indicator on notched phones */
+@media(max-width:480px){
+  .toast{left:16px;right:16px;bottom:max(16px,env(safe-area-inset-bottom));max-width:none;text-align:center}
+}
+
 </style>
 </head>
 <body>
