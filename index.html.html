@@ -913,6 +913,29 @@ body::before{display:none} /* superseded by .bg-wallpaper element */
 .loader-logo{
   background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 100%, white 25%), color-mix(in srgb, var(--accent) 100%, black 15%), color-mix(in srgb, var(--accent) 100%, white 25%));
   background-size:220% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}/* ---- Remove the macOS traffic-light dots: they were a fixed red/amber/
+   green decoration that never followed the theme, which is exactly the
+   "stuck default color" the user reported — dropping them entirely. ---- */
+.mac-traffic{display:none!important}
+
+/* ---- KPI cards were hard-coded to a rainbow (blue/purple/green/amber/
+   orange/cyan) regardless of the chosen theme — that's the other source
+   of a color that never updated when the accent was changed. Every KPI
+   card now derives its strip/icon/hover glow from the single active
+   --accent, at different tints so cards stay distinguishable without
+   ever showing a color outside the current theme. ---- */
+.kpi-card.blue::before,.kpi-card.purple::before,.kpi-card.green::before,
+.kpi-card.amber::before,.kpi-card.orange::before,.kpi-card.cyan::before{
+  background:linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 100%, white 30%));
+}
+.kpi-card.blue .kpi-icon{background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent)}
+.kpi-card.purple .kpi-icon{background:color-mix(in srgb, var(--accent) 20%, transparent);color:color-mix(in srgb, var(--accent) 100%, white 20%)}
+.kpi-card.green .kpi-icon{background:color-mix(in srgb, var(--accent) 16%, transparent);color:color-mix(in srgb, var(--accent) 100%, white 15%)}
+.kpi-card.amber .kpi-icon,.kpi-card.orange .kpi-icon{background:color-mix(in srgb, var(--accent) 18%, transparent);color:color-mix(in srgb, var(--accent) 100%, black 10%)}
+.kpi-card.cyan .kpi-icon{background:color-mix(in srgb, var(--accent) 15%, transparent);color:color-mix(in srgb, var(--accent) 100%, white 35%)}
+.kpi-card.blue:hover,.kpi-card.purple:hover,.kpi-card.green:hover,
+.kpi-card.amber:hover,.kpi-card.orange:hover,.kpi-card.cyan:hover{
+  box-shadow:0 14px 34px -14px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 </style>
 </head>
@@ -1023,7 +1046,6 @@ setTimeout(function(){
   <main class="main">
     <div class="header">
       <div style="display:flex;align-items:center">
-        <span class="mac-traffic" aria-hidden="true"><span class="t-red"></span><span class="t-amber"></span><span class="t-green"></span></span>
         <div>
         <div class="page-title" id="page-title">Dashboard</div>
         <div class="page-sub" id="page-sub">April 2026 · All accounts</div>
