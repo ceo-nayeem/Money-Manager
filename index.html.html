@@ -759,9 +759,154 @@ img,svg,canvas,.payment-card{max-width:100%}
   .toast{left:16px;right:16px;bottom:max(16px,env(safe-area-inset-bottom));max-width:none;text-align:center}
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   🧊 LIQUID GLASS OVERHAUL — full iOS 18 / macOS Sequoia "Liquid Glass"
+   treatment. Floating vibrancy panels, animated mesh wallpaper, specular
+   sweeps, noise grain, deeper blur + saturation on every surface.
+   Placed last so it wins the cascade over v1–v3 above.
+   ══════════════════════════════════════════════════════════════════ */
+
+:root{
+  --card-radius:24px;--radius-sm:14px;--radius-md:20px;--radius-lg:30px;
+  --lg-panel:14px; /* inset gap for floating sidebar/header, like macOS window chrome */
+}
+
+/* ---- Animated mesh wallpaper (macOS Sonoma/Sequoia style) ---- */
+.bg-wallpaper{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--bg)}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(70px);opacity:0.55;will-change:transform}
+.bg-orb1{width:520px;height:520px;top:-160px;left:-120px;background:radial-gradient(circle at 35% 35%, var(--accent), transparent 70%);animation:orbFloat1 26s ease-in-out infinite}
+.bg-orb2{width:460px;height:460px;top:20%;right:-160px;background:radial-gradient(circle at 60% 40%, var(--accent2), transparent 70%);animation:orbFloat2 32s ease-in-out infinite}
+.bg-orb3{width:600px;height:600px;bottom:-220px;left:8%;background:radial-gradient(circle at 50% 50%, var(--accent3), transparent 70%);animation:orbFloat3 38s ease-in-out infinite}
+.bg-orb4{width:380px;height:380px;bottom:6%;right:6%;background:radial-gradient(circle at 50% 50%, var(--accent4), transparent 72%);opacity:0.35;animation:orbFloat2 30s ease-in-out infinite reverse}
+@keyframes orbFloat1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,50px) scale(1.12)}}
+@keyframes orbFloat2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,40px) scale(1.08)}}
+@keyframes orbFloat3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-60px) scale(1.1)}}
+/* Fine noise grain over the wallpaper — the bit of "texture" that reads as glass/frost rather than flat gradient */
+.bg-wallpaper::after{
+  content:'';position:absolute;inset:-2px;opacity:0.05;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media(prefers-reduced-motion:reduce){.bg-orb{animation:none!important}}
+@media(max-width:768px){.bg-orb{filter:blur(50px)}.bg-orb1,.bg-orb3{width:360px;height:360px}.bg-orb2,.bg-orb4{width:280px;height:280px}}
+
+/* ---- Sidebar becomes a floating vibrancy panel (macOS window chrome) ---- */
+.sidebar{
+  top:var(--lg-panel);left:var(--lg-panel);height:calc(100vh - (var(--lg-panel) * 2));height:calc(100dvh - (var(--lg-panel) * 2));
+  border-radius:var(--radius-lg);
+}
+.sidebar::before{
+  border-radius:var(--radius-lg);
+  background:var(--glass-surface);
+  backdrop-filter:blur(46px) saturate(220%);-webkit-backdrop-filter:blur(46px) saturate(220%);
+  border:1px solid var(--glass-border);
+  box-shadow:0 24px 60px -20px rgba(var(--shadow-color),0.55),
+             0 1px 0 0 rgba(255,255,255,0.14) inset,
+             0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.sidebar::after{
+  content:'';position:absolute;top:0;left:14px;right:14px;height:1px;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation:sheenSweep 9s ease-in-out infinite;
+}
+@keyframes sheenSweep{0%,100%{opacity:0.15}50%{opacity:0.55}}
+.main{margin-left:calc(var(--sidebar-w) + (var(--lg-panel) * 2))}
+@media(max-width:768px){
+  .sidebar{top:0;left:0;height:100vh;height:100dvh;border-radius:0}
+  .sidebar::before{border-radius:0}
+  .main{margin-left:0}
+}
+.nav-item{border-radius:var(--radius-pill);margin:2px 12px}
+.nav-item.active{
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent2) 14%, transparent));
+  box-shadow:0 1px 0 0 rgba(255,255,255,0.16) inset,0 6px 18px -8px rgba(var(--shadow-color),0.5);
+  border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* ---- Header: floating rounded glass toolbar, like a macOS titlebar ---- */
+.header{
+  margin:var(--lg-panel) var(--lg-panel) 0;
+  border-radius:var(--radius-lg);
+  background:var(--glass-surface);
+  backdrop-filter:blur(38px) saturate(200%);-webkit-backdrop-filter:blur(38px) saturate(200%);
+  border:1px solid var(--glass-border);
+  box-shadow:0 16px 40px -22px rgba(var(--shadow-color),0.5),0 1px 0 0 rgba(255,255,255,0.14) inset;
+  position:sticky;top:var(--lg-panel);z-index:20;
+}
+.content{padding-top:24px}
+@media(max-width:768px){.header{margin:0;border-radius:0;top:0}}
+/* macOS traffic-light window dots, purely decorative chrome */
+.mac-traffic{display:inline-flex;gap:7px;margin-right:14px;vertical-align:middle}
+.mac-traffic span{width:11px;height:11px;border-radius:50%;display:inline-block;box-shadow:0 1px 1px rgba(0,0,0,0.25) inset}
+.mac-traffic .t-red{background:linear-gradient(180deg,#ff6058,#e0443e)}
+.mac-traffic .t-amber{background:linear-gradient(180deg,#ffbd2e,#e0a123)}
+.mac-traffic .t-green{background:linear-gradient(180deg,#28c941,#1fa62f)}
+@media(max-width:768px){.mac-traffic{display:none}}
+
+/* ---- Cards: deeper frost + a slow specular "lightning" sweep ---- */
+.card,.kpi-card,.budget-page-card,.goal-page-card,.invest-card,
+.txn-full-item,.txn-summary-item,.account-txn-section,.payment-card,
+.db-reset-item,.db-stat,.goal-card,.login-box,.modal,.theme-menu,.profile-dropdown{
+  border-radius:var(--card-radius)!important;
+}
+.card,.kpi-card,.budget-page-card,.goal-page-card,.invest-card,
+.txn-full-item,.txn-summary-item,.account-txn-section,
+.db-reset-item,.db-stat,.goal-card{
+  backdrop-filter:blur(34px) saturate(200%);-webkit-backdrop-filter:blur(34px) saturate(200%);
+  box-shadow:0 1px 0 0 rgba(255,255,255,0.14) inset, 0 20px 44px -24px rgba(var(--shadow-color),0.75);
+}
+.kpi-grid,.goals-grid,.goals-page-grid,.invest-grid,.budget-page-grid,
+.accounts-hero,.accounts-stats,.bento-2,.charts-row,.bottom-row,.reports-grid{gap:18px}
+.content{padding:24px 28px 32px}
+
+/* Continuous soft specular sweep across hero cards — the "lightning" glint */
+.kpi-card,.payment-card{position:relative}
+.kpi-card::before,.payment-card::before{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.16) 34%, rgba(255,255,255,0.02) 40%, transparent 55%);
+  background-size:220% 220%;
+  animation:glassGlint 7s ease-in-out infinite;
+  mix-blend-mode:overlay;
+}
+@keyframes glassGlint{0%{background-position:120% 0}50%{background-position:-20% 0}100%{background-position:120% 0}}
+@media(prefers-reduced-motion:reduce){.kpi-card::before,.payment-card::before,.sidebar::after{animation:none!important}}
+
+/* ---- Buttons: pill glass, brighter inner highlight ---- */
+.btn-primary{box-shadow:0 6px 18px rgba(var(--shadow-color),0.4),inset 0 1px 0 rgba(255,255,255,0.35)}
+.btn-ghost{backdrop-filter:blur(20px) saturate(200%);-webkit-backdrop-filter:blur(20px) saturate(200%);background:var(--glass-surface)}
+.chip{border-radius:var(--radius-pill);backdrop-filter:blur(20px) saturate(200%);-webkit-backdrop-filter:blur(20px) saturate(200%);background:var(--glass-surface)}
+
+/* ---- Modals / dropdowns: heavier vibrancy, like an iOS sheet ---- */
+.modal-overlay{backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);background:rgba(var(--shadow-color),0.28)}
+.modal,.theme-menu,.profile-dropdown,.login-box{
+  backdrop-filter:blur(46px) saturate(220%)!important;-webkit-backdrop-filter:blur(46px) saturate(220%)!important;
+  box-shadow:0 30px 70px -20px rgba(var(--shadow-color),0.6),0 1px 0 0 rgba(255,255,255,0.16) inset!important;
+}
+
+/* ---- Inputs: glass fields, iOS-style ---- */
+.form-input{
+  background:var(--glass-faint)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-radius:var(--radius-sm)!important;border:1px solid var(--glass-border)!important;
+}
+
+/* ---- Thin overlay scrollbars, iOS/macOS style ---- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
+
+/* ---- App-drawer style grid utility for icon-forward sections (Accounts hero already uses this shape) ---- */
+.accounts-hero{gap:20px}
+.payment-card{border-radius:var(--card-radius)}
+
+body::before{display:none} /* superseded by .bg-wallpaper element */
 </style>
 </head>
 <body>
+<div class="bg-wallpaper" aria-hidden="true">
+  <div class="bg-orb bg-orb1"></div>
+  <div class="bg-orb bg-orb2"></div>
+  <div class="bg-orb bg-orb3"></div>
+  <div class="bg-orb bg-orb4"></div>
+</div>
 <div id="app-loader"><div class="loader-logo">FinVault</div><div class="loader-ring"></div><div class="loader-sub">Loading your finances</div></div>
 <script>
 setTimeout(function(){
@@ -861,9 +1006,12 @@ setTimeout(function(){
   </aside>
   <main class="main">
     <div class="header">
-      <div>
+      <div style="display:flex;align-items:center">
+        <span class="mac-traffic" aria-hidden="true"><span class="t-red"></span><span class="t-amber"></span><span class="t-green"></span></span>
+        <div>
         <div class="page-title" id="page-title">Dashboard</div>
         <div class="page-sub" id="page-sub">April 2026 · All accounts</div>
+        </div>
       </div>
       <div class="header-right">
         <span class="chip" id="header-chip1">📈 Loading...</span>
