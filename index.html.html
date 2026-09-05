@@ -313,6 +313,16 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .nagad-stripe2{position:absolute;top:0;right:50px;width:3px;height:100%;background:rgba(255,255,255,0.07)}
 /* Cash design */
 .cash-pattern{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,255,255,0.02) 10px,rgba(255,255,255,0.02) 20px)}
+/* Custom / user-added payment method card decoration */
+.card-custom-pattern{position:absolute;inset:0;background-image:radial-gradient(circle at 85% 15%,rgba(255,255,255,0.08),transparent 55%)}
+/* Add-payment-method tile */
+.add-account-card{background:var(--bg3);border:2px dashed var(--border3);box-shadow:none;display:flex;align-items:center;justify-content:center}
+.add-account-card:hover{border-color:var(--accent);background:var(--bg4);box-shadow:none;transform:translateY(-4px)}
+.add-account-inner{text-align:center;padding:16px}
+.add-account-plus{font-size:30px;font-weight:300;color:var(--text2);line-height:1;margin-bottom:6px;transition:color 0.2s}
+.add-account-card:hover .add-account-plus{color:var(--accent)}
+.add-account-label{font-size:12.5px;font-weight:600;color:var(--text)}
+.add-account-sub{font-size:10px;color:var(--text2);margin-top:4px;max-width:210px;line-height:1.4}
 /* Account stats row */
 .accounts-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
 /* Account transactions list */
@@ -1197,6 +1207,50 @@ setTimeout(function(){
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('edit-account')">Cancel</button>
       <button class="btn btn-primary" style="flex:2" onclick="saveAccountBalance()">Save Changes</button>
+    </div>
+    <button class="btn btn-danger" id="edit-account-delete-btn" style="display:none;width:100%;margin-top:10px" onclick="deleteCustomAccount()">🗑 Remove This Payment Method</button>
+  </div>
+</div>
+<!-- ADD NEW PAYMENT METHOD MODAL -->
+<div class="modal-overlay" id="modal-add-account">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-account')">✕</button>
+    <div class="modal-title">+ Add Payment Method</div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" type="text" id="new-account-name" placeholder="e.g. Family Card">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Card Style</label>
+      <select class="form-input" id="new-account-theme">
+        <option value="family">👨‍👩‍👧‍👦 Family / Home Fund</option>
+        <option value="teal">💠 Teal</option>
+        <option value="violet">✦ Violet</option>
+        <option value="rose">♦ Rose</option>
+        <option value="amber">☀ Amber</option>
+        <option value="emerald">✳ Emerald</option>
+        <option value="slate">◆ Slate</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon (optional emoji)</label>
+      <input class="form-input" type="text" id="new-account-icon" placeholder="e.g. 👨‍👩‍👧‍👦" maxlength="4">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Starting Balance (৳)</label>
+      <input class="form-input" type="number" id="new-account-balance" placeholder="0" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reference / Number (optional)</label>
+      <input class="form-input" type="text" id="new-account-number" placeholder="e.g. contributor name, ref no.">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <input class="form-input" type="text" id="new-account-note" placeholder="e.g. Monthly fund from family">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('add-account')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveNewAccount()">Add Payment Method</button>
     </div>
   </div>
 </div>
@@ -2788,6 +2842,19 @@ function renderPageContent(page){
 // ══════════════════════════════════════════════
 //  ACCOUNTS PAGE
 // ══════════════════════════════════════════════
+// Preset card themes available when a user adds a new payment method.
+// Add more entries here any time — every account with a matching `theme`
+// automatically renders as a full designed card, no other code changes needed.
+const CARD_THEMES={
+  family:{gradient:'linear-gradient(135deg,#5b2c82 0%,#a8326b 50%,#e8590c 100%)',icon:'👨‍👩‍👧‍👦',label:'FAMILY FUND'},
+  teal:{gradient:'linear-gradient(135deg,#0f3d3e 0%,#0d9488 50%,#065f56 100%)',icon:'💠',label:'CUSTOM'},
+  violet:{gradient:'linear-gradient(135deg,#3b0764 0%,#7c3aed 50%,#4c1d95 100%)',icon:'✦',label:'CUSTOM'},
+  rose:{gradient:'linear-gradient(135deg,#4c0519 0%,#be123c 50%,#881337 100%)',icon:'♦',label:'CUSTOM'},
+  amber:{gradient:'linear-gradient(135deg,#451a03 0%,#d97706 50%,#78350f 100%)',icon:'☀',label:'CUSTOM'},
+  emerald:{gradient:'linear-gradient(135deg,#022c22 0%,#059669 50%,#064e3b 100%)',icon:'✳',label:'CUSTOM'},
+  slate:{gradient:'linear-gradient(135deg,#0f172a 0%,#334155 50%,#1e293b 100%)',icon:'◆',label:'CUSTOM'}
+};
+
 function ensureAccounts(){
   if(!DATA.accounts) DATA.accounts=[
     {id:'dbbl',name:'DBBL Bank',shortName:'Dutch-Bangla Bank Ltd.',type:'bank',balance:0,note:'',color:'dbbl',number:''},
@@ -2795,6 +2862,10 @@ function ensureAccounts(){
     {id:'nagad',name:'Nagad',shortName:'Nagad Digital Financial',type:'mobile',balance:0,note:'',color:'nagad',number:''},
     {id:'cash',name:'Cash',shortName:'Cash in Hand',type:'cash',balance:0,note:'',color:'cash',number:''}
   ];
+  // Family Card — the user's first custom payment method, added once for everyone.
+  if(!DATA.accounts.find(a=>a.id==='family')){
+    DATA.accounts.push({id:'family',name:'Family Card',shortName:'Family Fund Account',type:'custom',theme:'family',icon:'👨‍👩‍👧‍👦',balance:0,note:'Fund contributed by family',color:'custom',number:''});
+  }
   if(!DATA.transfers) DATA.transfers=[];
 }
 
@@ -2810,7 +2881,14 @@ function renderAccountsPage(){
 
 function renderAccountCards(){
   const grid=document.getElementById('accounts-cards-grid');if(!grid)return;
-  grid.innerHTML=DATA.accounts.map(acc=>buildCardHTML(acc)).join('');
+  grid.innerHTML=DATA.accounts.map(acc=>buildCardHTML(acc)).join('')+`
+    <div class="payment-card add-account-card" onclick="openAddAccountModal()">
+      <div class="add-account-inner">
+        <div class="add-account-plus">+</div>
+        <div class="add-account-label">Add Payment Method</div>
+        <div class="add-account-sub">Bank, mobile wallet, family fund & more — fully customizable</div>
+      </div>
+    </div>`;
 }
 
 function buildCardHTML(acc){
@@ -2818,6 +2896,8 @@ function buildCardHTML(acc){
   const isBkash=acc.color==='bkash';
   const isNagad=acc.color==='nagad';
   const isCash=acc.color==='cash';
+  const isCustom=acc.color==='custom'||acc.type==='custom';
+  const theme=CARD_THEMES[acc.theme]||CARD_THEMES.slate;
 
   let inner='';
   // Decorative elements per card
@@ -2901,10 +2981,32 @@ function buildCardHTML(acc){
         <div style="font-size:20px">🇧🇩</div>
       </div>
     `;
+  } else if(isCustom){
+    inner+=`
+      <div class="card-circle1"></div>
+      <div class="card-circle2"></div>
+      <div class="card-custom-pattern"></div>
+      <div style="position:absolute;top:24px;left:26px;right:70px">
+        <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,0.94);letter-spacing:0.5px;font-family:Sora,sans-serif;line-height:1.3">${acc.name}</div>
+        <div style="font-size:8px;color:rgba(255,255,255,0.55);letter-spacing:1.5px;margin-top:4px">${theme.label}</div>
+      </div>
+      <div class="card-logo-area" style="top:20px">
+        <div style="font-size:26px">${acc.icon||theme.icon}</div>
+      </div>
+      <div class="card-footer">
+        <div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">${acc.number?'Reference':'Owner'}</div>
+          <div class="card-holder">${acc.number||DATA.profile.name}</div>
+        </div>
+        <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:1px">CUSTOM</div>
+      </div>
+    `;
   }
 
+  const cardClass=isCustom?'payment-card':`payment-card card-${acc.color}`;
+  const cardStyle=isCustom?` style="background:${theme.gradient}"`:'';
   return `
-    <div class="payment-card card-${acc.color}" onclick="selectAccountTab('${acc.id}')">
+    <div class="${cardClass}"${cardStyle} onclick="selectAccountTab('${acc.id}')">
       ${inner}
       <div class="card-balance">
         <div class="card-balance-label">Balance</div>
@@ -2980,9 +3082,46 @@ function openEditAccount(id){
     numGroup.style.display='block';
     numInput.value=acc.number||'';
     if(acc.type==='mobile') numLabel.textContent='📱 Mobile Number';
+    else if(acc.type==='custom') numLabel.textContent='🏷️ Reference / Number (optional)';
     else numLabel.textContent='🏦 Account Number';
   }
+  const delBtn=document.getElementById('edit-account-delete-btn');
+  delBtn.style.display=acc.type==='custom'?'block':'none';
   document.getElementById('modal-edit-account').classList.add('open');
+}
+
+function deleteCustomAccount(){
+  const id=document.getElementById('edit-account-id').value;
+  ensureAccounts();
+  const acc=DATA.accounts.find(a=>a.id===id);
+  if(!acc||acc.type!=='custom')return;
+  if(!confirm(`Remove "${acc.name}"? Its past transactions will stay, but you won't be able to pick it as a payment method anymore.`))return;
+  DATA.accounts=DATA.accounts.filter(a=>a.id!==id);
+  saveData();closeModal('edit-account');renderAccountsPage();toast(acc.name+' removed');
+}
+
+function openAddAccountModal(){
+  document.getElementById('new-account-name').value='';
+  document.getElementById('new-account-theme').value='family';
+  document.getElementById('new-account-icon').value='';
+  document.getElementById('new-account-balance').value='';
+  document.getElementById('new-account-number').value='';
+  document.getElementById('new-account-note').value='';
+  document.getElementById('modal-add-account').classList.add('open');
+}
+
+function saveNewAccount(){
+  const name=document.getElementById('new-account-name').value.trim();
+  const theme=document.getElementById('new-account-theme').value;
+  const icon=document.getElementById('new-account-icon').value.trim();
+  const balance=parseFloat(document.getElementById('new-account-balance').value)||0;
+  const number=document.getElementById('new-account-number').value.trim();
+  const note=document.getElementById('new-account-note').value.trim();
+  if(!name){toast('Enter a name for this payment method','error');return}
+  ensureAccounts();
+  const id='acc_'+uid();
+  DATA.accounts.push({id,name,shortName:name,type:'custom',theme,icon,balance,note,color:'custom',number});
+  saveData();closeModal('add-account');renderAccountsPage();toast(name+' added ✓');
 }
 
 function saveAccountBalance(){
