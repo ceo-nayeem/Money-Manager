@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* Apply any saved theme before first paint, so returning users never see
+   a flash of the default dark-blue theme before their choice kicks in. */
+(function(){
+  try{
+    var t=localStorage.getItem('finvault_theme');
+    if(t)document.documentElement.setAttribute('data-theme',t);
+  }catch(e){}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FinVault – Money Manager</title>
@@ -192,6 +202,25 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .profile-dropdown-item.danger:hover{background:#ef444418;color:#ef4444}
 .profile-dropdown-divider{height:1px;background:var(--border);margin:6px 4px}
 @media(max-width:768px){.profile-dropdown{right:0}}
+
+/* ── Theme switcher (light/dark + accent-color picker) ── */
+.theme-switcher{position:relative}
+.theme-trigger{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--glass-faint);border:1px solid var(--glass-border);color:var(--text2);cursor:pointer;transition:all 0.18s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.theme-trigger:hover{color:var(--text);border-color:var(--border3);background:var(--glass)}
+.theme-trigger svg{width:17px;height:17px}
+.theme-menu{position:absolute;top:calc(100% + 10px);right:0;width:222px;background:var(--glass-modal);border:1px solid var(--glass-border);border-radius:var(--radius-md);box-shadow:0 12px 32px rgba(var(--shadow-color),0.35);padding:12px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all 0.16s ease;z-index:100;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%)}
+.theme-switcher.open .theme-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.theme-menu-label{font-size:9.5px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:8px}
+.theme-mode-row{display:flex;gap:6px;margin-bottom:14px}
+.theme-mode-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;font-size:11.5px;font-weight:500;color:var(--text2);background:var(--glass-faint);border:1px solid var(--glass-border);border-radius:9px;cursor:pointer;transition:all 0.15s;font-family:'Sora',sans-serif}
+.theme-mode-btn svg{width:13px;height:13px}
+.theme-mode-btn:hover{color:var(--text)}
+.theme-mode-btn.active{color:#fff;background:linear-gradient(180deg,#5b9bff,#4f8ef7);border-color:transparent;box-shadow:0 4px 12px #4f8ef73a}
+.theme-swatch-row{display:flex;gap:9px;justify-content:space-between}
+.theme-swatch{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;position:relative;flex-shrink:0;background:var(--sw);transition:transform 0.15s var(--ease-spring),border-color 0.15s}
+.theme-swatch:hover{transform:scale(1.1)}
+.theme-swatch.active{border-color:var(--text)}
+.theme-swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.4)}
 .hamburger{display:none;position:fixed;top:14px;left:14px;z-index:60;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px;cursor:pointer;color:var(--text);align-items:center;justify-content:center}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(var(--shadow-color),0.5);z-index:40;backdrop-filter:blur(2px)}
 .header{padding:20px 28px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -838,6 +867,33 @@ setTimeout(function(){
         <span class="chip" id="header-chip1">📈 Loading...</span>
         <span class="chip" id="header-chip2">✅ Budgets OK</span>
         <button class="btn btn-primary" onclick="openModal('add-txn')">+ Add Transaction</button>
+        <div class="theme-switcher" id="theme-switcher">
+          <button class="theme-trigger" id="theme-trigger" title="Theme" onclick="toggleThemeMenu(event)" aria-label="Change theme">
+            <svg id="theme-icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="4.5" stroke-width="1.6"/><path stroke-linecap="round" stroke-width="1.6" d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+            <svg id="theme-icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M20 14.5A8.5 8.5 0 119.5 4a6.5 6.5 0 0010.5 10.5z"/></svg>
+          </button>
+          <div class="theme-menu" id="theme-menu">
+            <div class="theme-menu-label">Appearance</div>
+            <div class="theme-mode-row">
+              <button class="theme-mode-btn" id="theme-mode-light" onclick="setThemeMode('light')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" stroke-width="1.8"/><path stroke-linecap="round" stroke-width="1.8" d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+                Light
+              </button>
+              <button class="theme-mode-btn" id="theme-mode-dark" onclick="setThemeMode('dark')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 14.5A8.5 8.5 0 119.5 4a6.5 6.5 0 0010.5 10.5z"/></svg>
+                Dark
+              </button>
+            </div>
+            <div class="theme-menu-label">Accent color</div>
+            <div class="theme-swatch-row">
+              <button class="theme-swatch" data-color="blue" style="--sw:#4f8ef7" title="Blue" onclick="setThemeColor('blue')"></button>
+              <button class="theme-swatch" data-color="purple" style="--sw:#8b5cf6" title="Purple" onclick="setThemeColor('purple')"></button>
+              <button class="theme-swatch" data-color="green" style="--sw:#10b981" title="Green" onclick="setThemeColor('green')"></button>
+              <button class="theme-swatch" data-color="amber" style="--sw:#f59e0b" title="Amber" onclick="setThemeColor('amber')"></button>
+              <button class="theme-swatch" data-color="rose" style="--sw:#ec4899" title="Rose" onclick="setThemeColor('rose')"></button>
+            </div>
+          </div>
+        </div>
         <div class="profile-menu" id="profile-menu">
           <div class="profile-trigger" id="profile-trigger" onclick="toggleProfileMenu(event)">
             <div class="avatar" id="user-avatar">AR</div>
@@ -2496,6 +2552,55 @@ document.addEventListener('click',(e)=>{
   menu.addEventListener('mouseenter',()=>{clearTimeout(hoverTimeout);menu.classList.add('open')});
   menu.addEventListener('mouseleave',()=>{hoverTimeout=setTimeout(()=>menu.classList.remove('open'),150)});
 })();
+
+// ── Theme switcher: light/dark mode × 5 accent-color palettes ─────────────
+// Each combination maps directly onto an existing [data-theme] block in the
+// CSS (e.g. mode "dark" + color "rose" => data-theme="dark-rose"), so this
+// file only has to track the two choices and compose the theme name.
+const THEME_KEY='finvault_theme';
+const THEME_COLORS=['blue','purple','green','amber','rose'];
+function parseThemeName(name){
+  const parts=(name||'dark-blue').split('-');
+  const mode=parts[0]==='light'?'light':'dark';
+  const color=THEME_COLORS.includes(parts[1])?parts[1]:'blue';
+  return{mode,color};
+}
+let themeState=parseThemeName(document.documentElement.getAttribute('data-theme')||localStorage.getItem(THEME_KEY));
+function applyTheme(){
+  const themeName=`${themeState.mode}-${themeState.color}`;
+  document.documentElement.setAttribute('data-theme',themeName);
+  try{localStorage.setItem(THEME_KEY,themeName)}catch(e){}
+  updateThemeSwitcherUI();
+}
+function updateThemeSwitcherUI(){
+  const sun=document.getElementById('theme-icon-sun'),moon=document.getElementById('theme-icon-moon');
+  if(sun&&moon){
+    sun.style.display=themeState.mode==='light'?'block':'none';
+    moon.style.display=themeState.mode==='dark'?'block':'none';
+  }
+  const lightBtn=document.getElementById('theme-mode-light'),darkBtn=document.getElementById('theme-mode-dark');
+  if(lightBtn)lightBtn.classList.toggle('active',themeState.mode==='light');
+  if(darkBtn)darkBtn.classList.toggle('active',themeState.mode==='dark');
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('active',b.dataset.color===themeState.color));
+}
+function setThemeMode(mode){themeState.mode=mode;applyTheme()}
+function setThemeColor(color){themeState.color=color;applyTheme()}
+function toggleThemeMenu(e){
+  if(e)e.stopPropagation();
+  document.getElementById('theme-switcher').classList.toggle('open');
+}
+document.addEventListener('click',(e)=>{
+  const sw=document.getElementById('theme-switcher');
+  if(sw && !sw.contains(e.target)) sw.classList.remove('open');
+});
+(function initThemeSwitcherHover(){
+  const sw=document.getElementById('theme-switcher');
+  if(!sw) return;
+  let hoverTimeout;
+  sw.addEventListener('mouseenter',()=>{clearTimeout(hoverTimeout);sw.classList.add('open')});
+  sw.addEventListener('mouseleave',()=>{hoverTimeout=setTimeout(()=>sw.classList.remove('open'),150)});
+})();
+applyTheme();
 function calcStats(){
   const income=DATA.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=DATA.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
