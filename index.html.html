@@ -617,12 +617,8 @@ setTimeout(function(){
       <div class="login-logo-sub" id="login-logo-sub">Money Manager</div>
     </div>
     <div class="login-title" id="login-title-text">Welcome back</div>
-    <div class="login-sub" id="login-sub-text">Sign in to access your dashboard</div>
-    <div class="login-error" id="login-error">Invalid User ID or Password. Please try again.</div>
-    <div class="form-group"><label class="form-label">User ID</label><input class="form-input" type="text" id="login-userid" placeholder="Enter your user ID" autocomplete="username"></div>
-    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"></div>
-    <button class="login-btn" onclick="attemptLogin()">Sign In →</button>
-    <div style="display:flex;align-items:center;gap:10px;margin:18px 0"><div style="flex:1;height:1px;background:var(--border2)"></div><span style="font-size:10.5px;color:var(--text3);letter-spacing:0.5px">OR</span><div style="flex:1;height:1px;background:var(--border2)"></div></div>
+    <div class="login-sub" id="login-sub-text">Sign in with Google to access your dashboard</div>
+    <div class="login-error" id="login-error">Google sign-in failed. Please try again.</div>
     <button class="login-btn" id="google-signin-btn" style="background:#fff;color:#1f1f1f;display:flex;align-items:center;justify-content:center;gap:10px" onclick="signInWithGoogle()">
       <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.3-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.8 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5c-7.5 0-14 4.2-17.3 10.4z"/><path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.6c-2.1 1.5-4.7 2.4-7.6 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.7 5.1C9.9 40.2 16.4 44.5 24 44.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.9 2.5-2.5 4.6-4.7 6.1l6.6 5.6C40.9 36.6 44.5 30.9 44.5 24c0-1.2-.1-2.4-.3-3.5z"/></svg>
       Continue with Google
@@ -635,7 +631,7 @@ setTimeout(function(){
   <div class="login-box" style="text-align:center">
     <div style="font-size:42px;margin-bottom:10px">🚫</div>
     <div class="login-title">Account Blocked</div>
-    <div class="login-sub">Your access to this app has been restricted by the admin. Please contact support if you think this is a mistake.</div>
+    <div class="login-sub">Your access to this app has been restricted. Please contact support if you think this is a mistake.</div>
     <button class="login-btn btn-danger" style="margin-top:16px" onclick="logout()">Sign Out</button>
   </div>
 </div>
@@ -651,41 +647,9 @@ setTimeout(function(){
     <div class="login-error" id="onboarding-error">Please fill in all required fields.</div>
     <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="onboard-name" placeholder="Your full name"></div>
     <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" type="tel" id="onboard-phone" placeholder="e.g. 01XXXXXXXXX"></div>
-    <div class="form-group"><label class="form-label">Job / Business Details</label><input class="form-input" type="text" id="onboard-job" placeholder="e.g. Job title, company, or business"></div>
+    <div class="form-group"><label class="form-label">Job / Business Details <span style="color:var(--text3);font-weight:400">(optional)</span></label><input class="form-input" type="text" id="onboard-job" placeholder="e.g. Job title, company, or business"></div>
     <button class="login-btn" id="onboard-submit-btn" onclick="submitOnboarding()">Continue →</button>
-    <div class="login-footer">🔒 Only visible to you and the admin</div>
-  </div>
-</div>
-
-<!-- ══════════ CHANGE CREDENTIALS MODAL ══════════ -->
-<div class="modal-overlay" id="modal-change-creds">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('change-creds')">✕</button>
-    <div class="modal-title">🔐 Change Login Credentials</div>
-    <div class="form-group">
-      <label class="form-label">Current Password</label>
-      <input class="form-input" type="password" id="creds-current-pass" placeholder="Enter current password">
-    </div>
-    <div style="border-top:1px solid var(--border);margin:16px 0"></div>
-    <div class="form-group">
-      <label class="form-label">New User ID</label>
-      <input class="form-input" type="text" id="creds-new-userid" placeholder="New user ID">
-      <div class="cred-hint">Leave blank to keep current User ID</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">New Password</label>
-      <input class="form-input" type="password" id="creds-new-pass" placeholder="New password">
-      <div class="cred-hint">Leave blank to keep current password</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Confirm New Password</label>
-      <input class="form-input" type="password" id="creds-confirm-pass" placeholder="Re-enter new password">
-    </div>
-    <div class="login-error" id="creds-error" style="margin-top:0"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('change-creds')">Cancel</button>
-      <button class="btn btn-primary" style="flex:2" onclick="saveCredentials()">Save Changes</button>
-    </div>
+    <div class="login-footer">🔒 Only visible to you</div>
   </div>
 </div>
 
@@ -734,11 +698,6 @@ setTimeout(function(){
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 12h.01M7 17h.01M11 7h6M11 12h6M11 17h6"/></svg>
       Categories
     </div>
-    <span class="nav-section" id="admin-nav-section" style="display:none">Admin</span>
-    <div class="nav-item" data-page="admin" id="admin-nav-item" style="display:none">
-      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      Admin Panel
-    </div>
   </aside>
   <main class="main">
     <div class="header">
@@ -763,10 +722,6 @@ setTimeout(function(){
             <div class="profile-dropdown-item" onclick="closeProfileMenu();switchPage('profile')">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               Manage Profile
-            </div>
-            <div class="profile-dropdown-item" onclick="closeProfileMenu();openCustomize()">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              Customize
             </div>
             <div class="profile-dropdown-divider"></div>
             <div class="profile-dropdown-item danger" onclick="closeProfileMenu();logout()">
@@ -958,15 +913,6 @@ setTimeout(function(){
         </div>
       </div>
 
-      <!-- ADMIN PANEL -->
-      <div class="page" id="page-admin">
-        <div id="admin-branding-section"></div>
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">All Users</span></div>
-          <div style="font-size:12px;color:var(--text3);padding:0 0 12px">Manage who can access FinVault, block accounts, restrict features, and set limits. This never touches anyone's transaction data.</div>
-          <div id="admin-users-list">Loading users…</div>
-        </div>
-      </div>
       <!-- PROFILE -->
       <div class="page" id="page-profile">
         <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -1848,10 +1794,10 @@ function populateCatSelect(id,cats,selected=null){
 
   if(!date){toast('Please select a date','error');return}
 
-  // Enforce admin-assigned transaction limit (only applies to brand-new transactions)
+  // Enforce a per-account transaction limit, if one is set on this user's record
   if(!editId && currentUserMeta && currentUserMeta.limits && currentUserMeta.limits.maxTransactions != null){
     if((DATA.transactions||[]).length >= currentUserMeta.limits.maxTransactions){
-      toast('Transaction limit reached (' + currentUserMeta.limits.maxTransactions + '). Contact admin to increase it.', 'error');
+      toast('Transaction limit reached (' + currentUserMeta.limits.maxTransactions + ').', 'error');
       return;
     }
   }
@@ -2307,11 +2253,9 @@ function handleAvatarCustomInput(val){
 }
 
 function renderProfilePage(){
-  const isOwnerLogin = currentUserMeta && currentUserMeta.uid === 'owner';
-  const isGoogleUser = !isOwnerLogin;
   const p = (currentUserMeta && currentUserMeta.profile) || DATA.profile;
   const n = p.name || DATA.profile.name || 'User';
-  const currentAvatar = isGoogleUser ? ((currentUserMeta && currentUserMeta.profile && currentUserMeta.profile.avatar) || '') : (DATA.profile.avatar || '');
+  const currentAvatar = (currentUserMeta && currentUserMeta.profile && currentUserMeta.profile.avatar) || '';
   pfSelectedAvatar = currentAvatar;
 
   document.getElementById('profile-page-avatar').textContent = getAvatarDisplay({avatar:currentAvatar}, n);
@@ -2320,11 +2264,8 @@ function renderProfilePage(){
   renderAvatarGrid(AVATAR_PRESETS.includes(currentAvatar) ? currentAvatar : null);
 
   document.getElementById('profile-page-name').textContent = n;
-  document.getElementById('profile-page-email').textContent = (currentUserMeta && currentUserMeta.email) || (isOwnerLogin ? 'Owner login (User ID / Password)' : '');
-
-  const badges = [];
-  if (currentUserMeta) badges.push(`<span class="badge" style="background:var(--accent2);color:#fff;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;text-transform:capitalize;margin-right:6px">${currentUserMeta.role}</span>`);
-  document.getElementById('profile-page-badges').innerHTML = badges.join('');
+  document.getElementById('profile-page-email').textContent = (currentUserMeta && currentUserMeta.email) || '';
+  document.getElementById('profile-page-badges').innerHTML = '';
 
   document.getElementById('pf-name').value = n;
   document.getElementById('pf-phone').value = p.phone || '';
@@ -2332,10 +2273,9 @@ function renderProfilePage(){
   document.getElementById('pf-balance').value = DATA.profile.openingBalance || 0;
   document.getElementById('pf-created').value = currentUserMeta && currentUserMeta.createdAt ? new Date(currentUserMeta.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
 
-  // Owner/legacy login has no phone/job concept and can't delete the master account
-  document.getElementById('pf-phone-group').style.display = isGoogleUser ? '' : 'none';
-  document.getElementById('pf-job-group').style.display = isGoogleUser ? '' : 'none';
-  document.getElementById('pf-danger-zone').style.display = (isGoogleUser && currentUserMeta && currentUserMeta.role !== 'admin') ? '' : 'none';
+  document.getElementById('pf-phone-group').style.display = '';
+  document.getElementById('pf-job-group').style.display = '';
+  document.getElementById('pf-danger-zone').style.display = '';
 }
 
 async function saveProfilePage(){
@@ -2349,8 +2289,7 @@ async function saveProfilePage(){
   document.getElementById('user-avatar').textContent = avatarDisplay;
   saveData();
 
-  const isOwnerLogin = currentUserMeta && currentUserMeta.uid === 'owner';
-  if (!isOwnerLogin && currentUserMeta) {
+  if (currentUserMeta) {
     const phone = document.getElementById('pf-phone').value.trim();
     const occupation = document.getElementById('pf-job').value.trim();
     try {
@@ -2369,7 +2308,7 @@ async function saveProfilePage(){
 }
 
 async function deleteMyAccount(){
-  if (!currentUserMeta || currentUserMeta.uid === 'owner' || currentUserMeta.role === 'admin') {
+  if (!currentUserMeta) {
     toast('This account cannot be self-deleted', 'error');
     return;
   }
@@ -2396,17 +2335,13 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
   item.addEventListener('click',()=>{switchPage(item.dataset.page);closeSidebar()});
 });
 function switchPage(page){
-  if(page==='admin' && !(currentUserMeta && currentUserMeta.role==='admin')){
-    toast('Admin access only','error');
-    return;
-  }
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const nav=document.querySelector('.nav-item[data-page="'+page+'"]');
   if(nav)nav.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
-  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],database:['Database & Backup','Export, import & restore your data'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],admin:['Admin Panel','Manage users, access & limits'],profile:['My Profile','Manage your personal information']};
+  const titles={dashboard:['Dashboard','April 2026 · All accounts'],transactions:['Transactions','All records & history'],budgets:['Budgets','Monthly spending limits'],goals:['Savings Goals','Track your milestones'],investments:['Investments','Portfolio performance'],reports:['Reports & Insights','Financial analysis'],database:['Database & Backup','Export, import & restore your data'],accounts:['My Accounts','DBBL · bKash · Nagad · Cash'],profile:['My Profile','Manage your personal information']};
   const t=titles[page]||[page,''];
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
@@ -2432,13 +2367,6 @@ document.addEventListener('click',(e)=>{
   menu.addEventListener('mouseenter',()=>{clearTimeout(hoverTimeout);menu.classList.add('open')});
   menu.addEventListener('mouseleave',()=>{hoverTimeout=setTimeout(()=>menu.classList.remove('open'),150)});
 })();
-function openCustomize(){
-  if(currentUserMeta && currentUserMeta.role==='admin'){
-    switchPage('admin');
-  } else {
-    toast('Customize options are available to admins only','info');
-  }
-}
 function calcStats(){
   const income=DATA.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=DATA.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -2883,7 +2811,6 @@ function renderPageContent(page){
   else if(page==='reports')renderReportsPage();
   else if(page==='database')renderDatabasePage();
   else if(page==='accounts')renderAccountsPage();
-  else if(page==='admin')renderAdminPanel();
   else if(page==='profile')renderProfilePage();
 }
 
@@ -3232,59 +3159,13 @@ window.addEventListener('load',()=>{
   checkAutoLogin();
 });
 
-// ─── Login System ─────────────────────────────────────────────────────────────
-const CRED_KEY = 'finvault_credentials';
-function getCredentials(){try{const s=localStorage.getItem(CRED_KEY);if(s)return JSON.parse(s)}catch(e){}return{userId:'admin',password:'1234'}}
-function saveCredentials(){
-  const currentPass=document.getElementById('creds-current-pass').value;
-  const newUserId=document.getElementById('creds-new-userid').value.trim();
-  const newPass=document.getElementById('creds-new-pass').value;
-  const confirmPass=document.getElementById('creds-confirm-pass').value;
-  const errEl=document.getElementById('creds-error');
-  errEl.classList.remove('show');
-  const creds=getCredentials();
-  if(currentPass!==creds.password){errEl.textContent='Current password is incorrect.';errEl.classList.add('show');return}
-  if(newPass&&newPass!==confirmPass){errEl.textContent='New passwords do not match.';errEl.classList.add('show');return}
-  localStorage.setItem(CRED_KEY,JSON.stringify({userId:newUserId||creds.userId,password:newPass||creds.password}));
-  closeModal('change-creds');
-  ['creds-current-pass','creds-new-userid','creds-new-pass','creds-confirm-pass'].forEach(id=>document.getElementById(id).value='');
-  toast('✅ Credentials updated successfully!','success');
-}
-function attemptLogin(){
-  const userId=document.getElementById('login-userid').value.trim();
-  const password=document.getElementById('login-password').value;
-  const errEl=document.getElementById('login-error');
-  const creds=getCredentials();
-  if(userId===creds.userId&&password===creds.password){
-    errEl.classList.remove('show');
-    sessionStorage.setItem('finvault_logged_in','1');
-    document.getElementById('login-screen').style.display='none';
-    const n=DATA.profile.name;
-    document.getElementById('user-name-display').textContent=n;
-    document.getElementById('user-avatar').textContent=getAvatarDisplay(DATA.profile,n);
-    // The owner's original User ID/Password login is always full-access & unrestricted
-    currentUserMeta={uid:'owner',role:'admin',blocked:false,limits:{maxTransactions:null},restrictions:{disabledPages:[]}};
-    applyRoleRestrictions();
-    renderAll();
-  }else{errEl.classList.add('show');document.getElementById('login-password').value=''}
-}
+// ─── Login System (Google Sign-In only) ────────────────────────────────────
 function checkAutoLogin(){
-  if(sessionStorage.getItem('finvault_logged_in')==='1' && !sessionStorage.getItem('finvault_google_uid')){
-    document.getElementById('login-screen').style.display='none';
-    const n=DATA.profile.name;
-    document.getElementById('user-name-display').textContent=n;
-    document.getElementById('user-avatar').textContent=getAvatarDisplay(DATA.profile,n);
-    currentUserMeta={uid:'owner',role:'admin',blocked:false,limits:{maxTransactions:null},restrictions:{disabledPages:[]}};
-    applyRoleRestrictions();
-    renderAll();
-  }
-  document.getElementById('login-password').addEventListener('keydown',e=>{if(e.key==='Enter')attemptLogin()});
-  document.getElementById('login-userid').addEventListener('keydown',e=>{if(e.key==='Enter')attemptLogin()});
+  // Session restore is handled by checkGoogleAutoLogin() via Firebase's
+  // onAuthStateChanged listener below — nothing to do here for a fresh load.
 }
 function logout(){
   sessionStorage.removeItem('finvault_logged_in');
-  document.getElementById('login-userid').value='';
-  document.getElementById('login-password').value='';
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('blocked-screen').style.display='none';
@@ -3293,7 +3174,7 @@ function logout(){
   sessionStorage.removeItem('finvault_google_uid');
   currentUserMeta=null;
   pendingOnboardUser=null; pendingOnboardMeta=null;
-  // Also sign out of Google if that's how the user logged in
+  // Also sign out of Google
   if (auth && auth.currentUser) {
     import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js').then(({ signOut }) => {
       signOut(auth).catch(()=>{});
@@ -3364,9 +3245,9 @@ async function finalizeGoogleLogin(user, meta){
   const n = (meta.profile && meta.profile.name) || user.displayName || DATA.profile.name || 'User';
   document.getElementById('user-name-display').textContent = n;
   document.getElementById('user-avatar').textContent = getAvatarDisplay(meta.profile, n);
-  // Reload data scoped to this Google account (admin's very first login migrates
-  // their existing data over instead of starting empty)
-  const isFirstLoginMigration = !!(meta && meta._isNew && meta.role === 'admin');
+  // Reload data scoped to this Google account (the CEO's very first login
+  // migrates the existing legacy data over instead of starting empty)
+  const isFirstLoginMigration = !!(meta && meta._isNew && user.email === CEO_EMAIL);
   await reloadFirestoreForCurrentDoc(isFirstLoginMigration);
   if (meta.profile && meta.profile.name) { DATA.profile.name = meta.profile.name; saveData(); }
   applyRoleRestrictions();
@@ -3413,7 +3294,7 @@ async function submitOnboarding(){
   }
 }
 
-// Creates/reads this user's role & permission document (user_meta/<uid>)
+// Creates/reads this user's account document (user_meta/<uid>)
 async function syncUserMeta(user){
   try {
     const { getFirestore, doc, getDoc, setDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
@@ -3425,12 +3306,11 @@ async function syncUserMeta(user){
       updateDoc(metaRef, { lastLogin: Date.now(), name: user.displayName || data.name || '', email: user.email || data.email || '' }).catch(()=>{});
       return { uid: user.uid, ...data, onboarded: data.onboarded !== undefined ? data.onboarded : true, _isNew: false };
     }
-    const isAdmin = ADMIN_EMAILS.includes(user.email);
     const fresh = {
       uid: user.uid,
       email: user.email || '',
       name: user.displayName || '',
-      role: isAdmin ? 'admin' : 'user',
+      role: 'user',
       blocked: false,
       onboarded: false,
       profile: { name: user.displayName || '', phone: '', occupation: '' },
@@ -3462,130 +3342,6 @@ function applyRoleRestrictions(){
     if (page === 'dashboard') return; // dashboard always available
     item.style.display = disabled.includes(page) ? 'none' : '';
   });
-  const adminNav = document.getElementById('admin-nav-item');
-  const adminSection = document.getElementById('admin-nav-section');
-  const isAdmin = currentUserMeta && currentUserMeta.role === 'admin';
-  if (adminNav) adminNav.style.display = isAdmin ? '' : 'none';
-  if (adminSection) adminSection.style.display = isAdmin ? '' : 'none';
-}
-
-// ─── Admin Panel ────────────────────────────────────────────────────────────
-const ADMIN_TOGGLEABLE_PAGES = [
-  {key:'transactions', label:'Transactions'},
-  {key:'accounts', label:'Accounts'},
-  {key:'budgets', label:'Budgets'},
-  {key:'goals', label:'Goals'},
-  {key:'investments', label:'Investments'},
-  {key:'reports', label:'Reports'}
-];
-
-async function renderAdminPanel(){
-  const listEl = document.getElementById('admin-users-list');
-  if (!listEl) return;
-  if (!currentUserMeta || currentUserMeta.role !== 'admin') {
-    listEl.innerHTML = '<div style="padding:20px;color:var(--text3)">Admin access only.</div>';
-    return;
-  }
-  listEl.innerHTML = 'Loading users…';
-  const brandingEl = document.getElementById('admin-branding-section');
-  if (brandingEl) brandingEl.innerHTML = renderAdminBrandingForm();
-  try {
-    const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    if (!db) db = getFirestore(firebaseApp);
-    const snap = await getDocs(collection(db, 'user_meta'));
-    const users = [];
-    snap.forEach(d => users.push({ uid: d.id, ...d.data() }));
-    users.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
-    if (!users.length) {
-      listEl.innerHTML = '<div style="padding:20px;color:var(--text3)">No users yet.</div>';
-      return;
-    }
-    listEl.innerHTML = users.map(u => renderAdminUserRow(u)).join('');
-  } catch (e) {
-    console.warn('renderAdminPanel error:', e);
-    listEl.innerHTML = '<div style="padding:20px;color:var(--red)">Could not load users. Check Firestore rules/connection.</div>';
-  }
-}
-
-function renderAdminUserRow(u){
-  const isSelf = currentUserMeta && u.uid === currentUserMeta.uid;
-  const role = u.role || 'user';
-  const blocked = !!u.blocked;
-  const maxTxn = (u.limits && u.limits.maxTransactions != null) ? u.limits.maxTransactions : '';
-  const disabledPages = (u.restrictions && u.restrictions.disabledPages) || [];
-  const profile = u.profile || { name:'', phone:'', occupation:'' };
-  const initials = getAvatarDisplay(profile, profile.name || u.name || u.email);
-  const pageChecks = ADMIN_TOGGLEABLE_PAGES.map(p => `
-    <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);cursor:pointer">
-      <input type="checkbox" data-uid="${u.uid}" data-page="${p.key}" class="admin-page-toggle" ${disabledPages.includes(p.key)?'checked':''} ${role==='admin'?'disabled':''}>
-      Hide ${p.label}
-    </label>`).join('');
-  return `
-  <div class="card" style="margin-bottom:10px;padding:14px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="avatar" style="width:34px;height:34px;font-size:12px">${initials}</div>
-        <div>
-          <div style="font-size:13px;font-weight:600">${profile.name || u.name || '(not onboarded yet)'} ${isSelf?'<span style="font-size:10px;color:var(--accent)">(you)</span>':''}</div>
-          <div style="font-size:11.5px;color:var(--text3)">${u.email || ''} · <span style="text-transform:capitalize">${role}</span> ${blocked?'· <span style="color:var(--red)">Blocked</span>':''} ${profile.phone?' · '+profile.phone:''}</div>
-          ${profile.occupation ? `<div style="font-size:11px;color:var(--text3);margin-top:1px">💼 ${profile.occupation}</div>` : ''}
-        </div>
-      </div>
-      ${role==='admin' ? '' : `
-      <button class="btn btn-sm ${blocked?'btn-primary':'btn-danger'}" onclick="adminToggleBlock('${u.uid}', ${!blocked})">
-        ${blocked ? '✓ Unblock' : '🚫 Block'}
-      </button>`}
-    </div>
-    ${role==='admin' ? '' : `
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:10px">
-        <div><label style="font-size:11px;color:var(--text3)">Name</label><input class="form-input" id="admin-name-${u.uid}" value="${profile.name||''}" style="padding:6px 8px;font-size:12px"></div>
-        <div><label style="font-size:11px;color:var(--text3)">Phone</label><input class="form-input" id="admin-phone-${u.uid}" value="${profile.phone||''}" style="padding:6px 8px;font-size:12px"></div>
-        <div><label style="font-size:11px;color:var(--text3)">Job / Business</label><input class="form-input" id="admin-job-${u.uid}" value="${profile.occupation||''}" style="padding:6px 8px;font-size:12px"></div>
-        <div><label style="font-size:11px;color:var(--text3)">Max transactions</label><input type="number" min="0" placeholder="Unlimited" value="${maxTxn}" id="admin-max-${u.uid}" class="form-input" style="padding:6px 8px;font-size:12px"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:10px">
-        ${pageChecks}
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="adminSaveUserSettings('${u.uid}')">💾 Save settings</button>
-    </div>`}
-  </div>`;
-}
-
-async function adminToggleBlock(uid, newBlockedState){
-  try {
-    const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    if (!db) db = getFirestore(firebaseApp);
-    await updateDoc(doc(db, 'user_meta', uid), { blocked: newBlockedState });
-    toast(newBlockedState ? 'User blocked' : 'User unblocked', 'success');
-    renderAdminPanel();
-  } catch (e) {
-    console.warn('adminToggleBlock error:', e);
-    toast('Failed to update user', 'error');
-  }
-}
-
-async function adminSaveUserSettings(uid){
-  try {
-    const maxInput = document.getElementById('admin-max-' + uid);
-    const maxVal = maxInput && maxInput.value !== '' ? parseInt(maxInput.value, 10) : null;
-    const disabledPages = Array.from(document.querySelectorAll(`.admin-page-toggle[data-uid="${uid}"]:checked`)).map(el => el.dataset.page);
-    const name = (document.getElementById('admin-name-' + uid) || {}).value || '';
-    const phone = (document.getElementById('admin-phone-' + uid) || {}).value || '';
-    const occupation = (document.getElementById('admin-job-' + uid) || {}).value || '';
-    const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    if (!db) db = getFirestore(firebaseApp);
-    await updateDoc(doc(db, 'user_meta', uid), {
-      profile: { name: name.trim(), phone: phone.trim(), occupation: occupation.trim() },
-      limits: { maxTransactions: (maxVal === null || isNaN(maxVal)) ? null : maxVal },
-      restrictions: { disabledPages }
-    });
-    toast('Settings saved ✓', 'success');
-    renderAdminPanel();
-  } catch (e) {
-    console.warn('adminSaveUserSettings error:', e);
-    toast('Failed to save settings', 'error');
-  }
 }
 
 // Reloads Firestore data + live listener for whatever DOC_PATH currently points to
@@ -3600,7 +3356,7 @@ async function reloadFirestoreForCurrentDoc(migrateFromLegacy){
       syncCatsFromData();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
     } else if (migrateFromLegacy) {
-      // Admin's very first Google login: bring over the existing data
+      // CEO's very first Google login: bring over the existing data
       // that was previously stored in the shared legacy document
       const legacyRef = doc(db, LEGACY_DOC_PATH);
       const legacySnap = await getDoc(legacyRef);
@@ -3815,13 +3571,13 @@ const firebaseConfig = {
   appId: "1:727186041987:web:1813db6ba4bbc434fa3fb6"
 };
 
-// ─── Admin configuration ───────────────────────────────────────────────────
-// Put YOUR OWN Gmail address here. Whoever logs in with this email becomes
-// the Admin automatically and gets the Admin Panel. Everyone else who signs
-// in with Google becomes a normal restricted-by-default "user".
-const ADMIN_EMAILS = ["YOUR_EMAIL@gmail.com"];
+// ─── App configuration ──────────────────────────────────────────────────────
+// Every Google sign-in becomes an equal, normal user. This email is only used
+// to identify the account whose legacy (pre-Google-login) data should be
+// migrated over on first sign-in — it carries no special permissions.
+const CEO_EMAIL = "ceo.nayeemuhammad@gmail.com";
 
-// Holds the logged-in user's role/limits/restrictions once known
+// Holds the logged-in user's profile/limits/restrictions once known
 let currentUserMeta = null; // { uid, email, name, role, blocked, limits:{maxTransactions}, restrictions:{disabledPages:[]} }
 
 // Firestore document reference (one doc per user, using a fixed device key)
@@ -3914,7 +3670,7 @@ window.addEventListener('load', () => {
   loadAppConfig();
 });
 
-// ─── Global App Branding/Config (editable by Admin, applies to everyone) ──
+// ─── Global App Branding/Config (applies to everyone; edit values in Firestore directly) ──
 const APP_CONFIG_DOC = 'app_config/global';
 let currentAppConfig = null;
 
@@ -3940,11 +3696,9 @@ function applyAppConfig(cfg){
   if (!cfg) return;
   if (cfg.appName) {
     document.title = cfg.appName;
-    const a = document.getElementById('sidebar-logo-mark'); if (a) a.textContent = cfg.appName;
     const b = document.getElementById('login-logo-mark'); if (b) b.textContent = cfg.appName;
   }
   if (cfg.tagline) {
-    const a = document.getElementById('sidebar-logo-sub'); if (a) a.textContent = cfg.tagline;
     const b = document.getElementById('login-logo-sub'); if (b) b.textContent = cfg.tagline;
   }
   if (cfg.loginTitle) { const el = document.getElementById('login-title-text'); if (el) el.textContent = cfg.loginTitle; }
@@ -3953,53 +3707,11 @@ function applyAppConfig(cfg){
     document.documentElement.style.setProperty('--accent', cfg.accentColor);
   }
   if (cfg.logoImageUrl) {
-    ['sidebar-logo-mark','login-logo-mark'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el && !el.querySelector('img')) {
-        el.innerHTML = `<img src="${cfg.logoImageUrl}" alt="logo" style="max-height:32px;max-width:160px;-webkit-text-fill-color:initial">`;
-      }
-    });
+    const el = document.getElementById('login-logo-mark');
+    if (el && !el.querySelector('img')) {
+      el.innerHTML = `<img src="${cfg.logoImageUrl}" alt="logo" style="max-height:32px;max-width:160px;-webkit-text-fill-color:initial">`;
+    }
   }
-}
-
-async function adminSaveAppConfig(){
-  try {
-    const cfg = {
-      appName: document.getElementById('cfg-app-name').value.trim(),
-      tagline: document.getElementById('cfg-tagline').value.trim(),
-      loginTitle: document.getElementById('cfg-login-title').value.trim(),
-      loginSubtitle: document.getElementById('cfg-login-subtitle').value.trim(),
-      accentColor: document.getElementById('cfg-accent-color').value,
-      logoImageUrl: document.getElementById('cfg-logo-url').value.trim()
-    };
-    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    if (!db) db = getFirestore(firebaseApp);
-    await setDoc(doc(db, APP_CONFIG_DOC), cfg, { merge: true });
-    currentAppConfig = { ...(currentAppConfig||{}), ...cfg };
-    applyAppConfig(currentAppConfig);
-    toast('Saved for all users ✓', 'success');
-  } catch (e) {
-    console.warn('adminSaveAppConfig error:', e);
-    toast('Failed to save branding', 'error');
-  }
-}
-
-function renderAdminBrandingForm(){
-  const cfg = currentAppConfig || {};
-  return `
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-header"><span class="card-title">Site Branding &amp; Design</span></div>
-    <div style="font-size:12px;color:var(--text3);padding:0 0 14px">Edit the app name, colors, and login screen text. Saving applies instantly for every user — no transaction data is touched.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group"><label class="form-label">App Name</label><input class="form-input" id="cfg-app-name" value="${cfg.appName||'FinVault'}"></div>
-      <div class="form-group"><label class="form-label">Tagline</label><input class="form-input" id="cfg-tagline" value="${cfg.tagline||'Money Manager'}"></div>
-      <div class="form-group"><label class="form-label">Login Title</label><input class="form-input" id="cfg-login-title" value="${cfg.loginTitle||'Welcome back'}"></div>
-      <div class="form-group"><label class="form-label">Login Subtitle</label><input class="form-input" id="cfg-login-subtitle" value="${cfg.loginSubtitle||'Sign in to access your dashboard'}"></div>
-      <div class="form-group"><label class="form-label">Accent Color</label><input class="form-input" type="color" id="cfg-accent-color" value="${cfg.accentColor||'#4f8ef7'}" style="height:40px;padding:4px"></div>
-      <div class="form-group"><label class="form-label">Logo Image URL (optional)</label><input class="form-input" id="cfg-logo-url" placeholder="https://..." value="${cfg.logoImageUrl||''}"></div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:6px" onclick="adminSaveAppConfig()">💾 Save for All Users</button>
-  </div>`;
 }
 
 // ══ GROUP TRANSACTION FUNCTIONS ══════════════════════════════════════════════
