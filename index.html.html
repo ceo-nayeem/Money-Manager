@@ -2776,9 +2776,26 @@ function applyTheme(){
 // variable cascade entirely so nothing can ever stay on a stale color.
 // Called on every theme change AND on every page switch (since the
 // ".nav-item.active" class moves to a different element each time).
+// Converts a "#rrggbb" hex string to an "r,g,b" string for use inside rgba().
+function hexToRgbStr(hex){
+  const h=hex.replace('#','');
+  const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+  return `${r},${g},${b}`;
+}
+// Applies the current theme's exact accent hex directly onto every element
+// that visibly got stuck on an old color (Add Transaction/primary buttons,
+// the active sidebar item's text, the avatar, and the four floating
+// background "orbs" behind the app) — bypassing the CSS variable cascade
+// entirely so nothing can ever stay on a stale color. The orbs specifically
+// needed this because their radial-gradient backgrounds sit on
+// will-change:transform animated layers, which some browsers fail to
+// repaint on a plain CSS-variable change — a direct inline style forces it.
+// Called on every theme change AND on every page switch (since the
+// ".nav-item.active" class moves to a different element each time).
 function forceThemeColors(){
   const themeName=document.documentElement.getAttribute('data-theme')||'dark-blue';
   const hex=THEME_ACCENT_HEX[themeName]||THEME_ACCENT_HEX['dark-blue'];
+  const rgb=hexToRgbStr(hex.a);
   document.querySelectorAll('.btn-primary').forEach(el=>{
     el.style.setProperty('background',`linear-gradient(180deg, rgba(255,255,255,0.24), rgba(0,0,0,0.14)), ${hex.a}`,'important');
   });
@@ -2787,6 +2804,18 @@ function forceThemeColors(){
   });
   document.querySelectorAll('.avatar').forEach(el=>{
     el.style.setProperty('background',`linear-gradient(135deg, rgba(255,255,255,0.3), rgba(0,0,0,0.18)), ${hex.a}`,'important');
+  });
+  document.querySelectorAll('.bg-orb1').forEach(el=>{
+    el.style.setProperty('background',`radial-gradient(circle at 35% 35%, rgba(${rgb},0.9), transparent 70%)`,'important');
+  });
+  document.querySelectorAll('.bg-orb2').forEach(el=>{
+    el.style.setProperty('background',`radial-gradient(circle at 60% 40%, rgba(${rgb},0.6), transparent 70%)`,'important');
+  });
+  document.querySelectorAll('.bg-orb3').forEach(el=>{
+    el.style.setProperty('background',`radial-gradient(circle at 50% 50%, rgba(${rgb},0.75), transparent 70%)`,'important');
+  });
+  document.querySelectorAll('.bg-orb4').forEach(el=>{
+    el.style.setProperty('background',`radial-gradient(circle at 50% 50%, rgba(${rgb},0.5), transparent 72%)`,'important');
   });
 }
 function updateThemeSwitcherUI(){
