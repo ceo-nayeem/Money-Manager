@@ -2736,6 +2736,16 @@ document.addEventListener('click',(e)=>{
 // file only has to track the two choices and compose the theme name.
 const THEME_KEY='finvault_theme';
 const THEME_COLORS=['blue','purple','green','amber','rose'];
+// Exact accent hex pulled from each [data-theme] CSS block above. Used as a
+// direct, guaranteed fallback so buttons never get stuck on an old color
+// even if a CSS variable somewhere fails to cascade for any reason.
+const THEME_ACCENT_HEX={
+  'dark-blue':{a:'#4f8ef7',a2:'#7c3aed'},'dark-purple':{a:'#a78bfa',a2:'#ec4899'},
+  'dark-green':{a:'#10b981',a2:'#4f8ef7'},'dark-amber':{a:'#f59e0b',a2:'#ef4444'},
+  'dark-rose':{a:'#ec4899',a2:'#7c3aed'},'light-blue':{a:'#4f8ef7',a2:'#7c3aed'},
+  'light-purple':{a:'#8b5cf6',a2:'#db2777'},'light-green':{a:'#0d9488',a2:'#4f8ef7'},
+  'light-amber':{a:'#c2760a',a2:'#e0342d'},'light-rose':{a:'#db2777',a2:'#8b5cf6'}
+};
 function parseThemeName(name){
   const parts=(name||'dark-blue').split('-');
   const mode=parts[0]==='light'?'light':'dark';
@@ -2755,6 +2765,14 @@ function applyTheme(){
   const cs=getComputedStyle(document.documentElement);
   ['--accent','--accent2','--accent3','--accent4','--accent5','--accent6','--accent-rgb','--accent2-rgb'].forEach(v=>{
     document.documentElement.style.setProperty(v,cs.getPropertyValue(v));
+  });
+  // Direct, guaranteed fix for the Add Transaction button (and every other
+  // .btn-primary): set its background straight from the hardcoded hex map
+  // instead of relying only on the CSS variable cascade, so it is 100%
+  // impossible for it to stay on an old theme's color.
+  const hex=THEME_ACCENT_HEX[themeName]||THEME_ACCENT_HEX['dark-blue'];
+  document.querySelectorAll('.btn-primary').forEach(el=>{
+    el.style.setProperty('background',`linear-gradient(180deg, rgba(255,255,255,0.24), rgba(0,0,0,0.14)), ${hex.a}`,'important');
   });
   updateThemeSwitcherUI();
 }
