@@ -2708,6 +2708,7 @@ function switchPage(page){
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
   renderPageContent(page);
+  if(typeof forceThemeColors==='function')forceThemeColors();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open')}
@@ -2766,15 +2767,27 @@ function applyTheme(){
   ['--accent','--accent2','--accent3','--accent4','--accent5','--accent6','--accent-rgb','--accent2-rgb'].forEach(v=>{
     document.documentElement.style.setProperty(v,cs.getPropertyValue(v));
   });
-  // Direct, guaranteed fix for the Add Transaction button (and every other
-  // .btn-primary): set its background straight from the hardcoded hex map
-  // instead of relying only on the CSS variable cascade, so it is 100%
-  // impossible for it to stay on an old theme's color.
+  forceThemeColors();
+  updateThemeSwitcherUI();
+}
+// Applies the current theme's exact accent hex directly onto every element
+// that visibly got stuck on an old color (Add Transaction/primary buttons,
+// the active sidebar item's text, and the avatar) — bypassing the CSS
+// variable cascade entirely so nothing can ever stay on a stale color.
+// Called on every theme change AND on every page switch (since the
+// ".nav-item.active" class moves to a different element each time).
+function forceThemeColors(){
+  const themeName=document.documentElement.getAttribute('data-theme')||'dark-blue';
   const hex=THEME_ACCENT_HEX[themeName]||THEME_ACCENT_HEX['dark-blue'];
   document.querySelectorAll('.btn-primary').forEach(el=>{
     el.style.setProperty('background',`linear-gradient(180deg, rgba(255,255,255,0.24), rgba(0,0,0,0.14)), ${hex.a}`,'important');
   });
-  updateThemeSwitcherUI();
+  document.querySelectorAll('.nav-item.active').forEach(el=>{
+    el.style.setProperty('color',hex.a,'important');
+  });
+  document.querySelectorAll('.avatar').forEach(el=>{
+    el.style.setProperty('background',`linear-gradient(135deg, rgba(255,255,255,0.3), rgba(0,0,0,0.18)), ${hex.a}`,'important');
+  });
 }
 function updateThemeSwitcherUI(){
   const sun=document.getElementById('theme-icon-sun'),moon=document.getElementById('theme-icon-moon');
