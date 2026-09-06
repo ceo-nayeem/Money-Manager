@@ -2747,6 +2747,15 @@ function applyTheme(){
   const themeName=`${themeState.mode}-${themeState.color}`;
   document.documentElement.setAttribute('data-theme',themeName);
   try{localStorage.setItem(THEME_KEY,themeName)}catch(e){}
+  // Re-read the resolved accent tokens for the new theme and pin them as
+  // inline custom properties on <html>. Every accent-linked element (Add
+  // Transaction button, active sidebar text, avatar, theme-menu buttons,
+  // etc.) reads these same variables, so this guarantees none of them can
+  // ever be left showing a previous theme's color — no matter what.
+  const cs=getComputedStyle(document.documentElement);
+  ['--accent','--accent2','--accent3','--accent4','--accent5','--accent6','--accent-rgb','--accent2-rgb'].forEach(v=>{
+    document.documentElement.style.setProperty(v,cs.getPropertyValue(v));
+  });
   updateThemeSwitcherUI();
 }
 function updateThemeSwitcherUI(){
