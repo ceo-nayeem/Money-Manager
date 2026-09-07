@@ -8,6 +8,8 @@
   try{
     var t=localStorage.getItem('finvault_theme');
     if(t)document.documentElement.setAttribute('data-theme',t);
+    var s=localStorage.getItem('finvault_sidebar');
+    if(s)document.documentElement.setAttribute('data-sidebar',s);
   }catch(e){}
 })();
 </script>
@@ -922,6 +924,72 @@ body::before{display:none} /* superseded by .bg-wallpaper element */
 .kpi-card.amber:hover,.kpi-card.orange:hover,.kpi-card.cyan:hover{
   box-shadow:0 14px 34px -14px rgba(var(--accent-rgb),0.55);
 }
+
+/* Hidden by default (mobile keeps its own hamburger + full labeled drawer);
+   only shown for the desktop icon-rail, inside the media query below. */
+.sidebar-toggle{display:none}
+
+/* ══════════════════════════════════════════════════════════════════
+   🎛️ ICON-RAIL SIDEBAR — macOS Dock / iOS style collapsible nav.
+   Desktop default: a slim rail of glassy circular icon buttons, no
+   labels, no section headers. A small chevron pill at the top of the
+   rail expands it into the full labeled list. State is written to
+   html[data-sidebar] (mirrors the existing data-theme pattern) and
+   saved to localStorage, so the choice survives a reload with no
+   flash. Mobile is untouched — it keeps the existing off-canvas
+   drawer with full labels, since a temporary overlay doesn't need
+   the icon-only treatment.
+   ══════════════════════════════════════════════════════════════════ */
+@media(min-width:769px){
+  html{--sidebar-w:86px;--sidebar-w-expanded:250px}
+  html[data-sidebar="expanded"]{--sidebar-w:var(--sidebar-w-expanded)}
+
+  .sidebar{transition:width 0.45s var(--ease-spring);align-items:center;padding-top:4px;overflow:visible}
+  html[data-sidebar="expanded"] .sidebar{align-items:stretch}
+  .main{transition:margin-left 0.45s var(--ease-spring)}
+
+  .sidebar-toggle{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;
+    width:38px;height:38px;border-radius:50%;margin:6px auto 12px;
+    color:var(--text2);border:1px solid var(--glass-border);background:var(--glass-faint);
+    backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);
+    box-shadow:0 1px 0 0 rgba(255,255,255,0.12) inset;
+    transition:background 0.2s,color 0.2s,transform 0.25s var(--ease-spring),box-shadow 0.2s;
+  }
+  .sidebar-toggle:hover{background:var(--glass-surface);color:var(--accent);transform:scale(1.08)}
+  .sidebar-toggle:active{transform:scale(0.94)}
+  .sidebar-toggle svg{transition:transform 0.4s var(--ease-spring)}
+  html[data-sidebar="expanded"] .sidebar-toggle{align-self:flex-end;margin:6px 16px 12px auto}
+  html[data-sidebar="expanded"] .sidebar-toggle svg{transform:rotate(180deg)}
+
+  .nav-section{display:none}
+  html[data-sidebar="expanded"] .nav-section{display:block;animation:navFadeIn 0.3s ease both}
+
+  .nav-item{width:48px;height:48px;padding:0;margin:6px auto;justify-content:center;border-radius:50%;gap:0;position:relative;overflow:visible}
+  .nav-item:hover{transform:scale(1.08)}
+  .nav-item:active{transform:scale(0.95)}
+  .nav-item.active{box-shadow:0 1px 0 0 rgba(255,255,255,0.14) inset,0 6px 18px -8px rgba(var(--accent-rgb),0.65),0 0 0 1px rgba(var(--accent-rgb),0.35)}
+  html[data-sidebar="expanded"] .nav-item{
+    width:calc(100% - 24px);height:44px;padding:0 14px;margin:2px 12px;
+    justify-content:flex-start;border-radius:var(--radius-pill);gap:10px;
+  }
+
+  .nav-label{display:none}
+  html[data-sidebar="expanded"] .nav-label{display:inline;animation:navFadeIn 0.3s ease 0.05s both}
+
+  /* Collapsed-rail tooltip: the label floats out as a small glass chip on hover */
+  html:not([data-sidebar="expanded"]) .nav-item:hover::after{
+    content:attr(data-label);position:absolute;left:58px;top:50%;transform:translateY(-50%);
+    background:var(--glass-modal);backdrop-filter:blur(30px) saturate(200%);-webkit-backdrop-filter:blur(30px) saturate(200%);
+    border:1px solid var(--glass-border);padding:6px 13px;border-radius:var(--radius-sm);
+    font-size:12px;font-weight:500;white-space:nowrap;color:var(--text);z-index:80;pointer-events:none;
+    box-shadow:0 14px 34px -12px rgba(var(--shadow-color),0.55);
+    animation:tooltipIn 0.15s var(--ease-out) both;
+  }
+}
+@keyframes navFadeIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@keyframes tooltipIn{from{opacity:0;transform:translateY(-50%) translateX(-4px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}
+@media(prefers-reduced-motion:reduce){.sidebar,.main,.sidebar-toggle,.sidebar-toggle svg,.nav-item{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -988,44 +1056,47 @@ setTimeout(function(){
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="app">
   <aside class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebarRail()" aria-label="Expand or collapse sidebar" title="Expand sidebar">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 6l6 6-6 6"/></svg>
+    </button>
     <span class="nav-section" style="margin-top:14px">Overview</span>
-    <div class="nav-item active" data-page="dashboard">
+    <div class="nav-item active" data-page="dashboard" data-label="Dashboard" aria-label="Dashboard">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="1.5"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="1.5"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="1.5"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="1.5"/></svg>
-      Dashboard
+      <span class="nav-label">Dashboard</span>
     </div>
-    <div class="nav-item" data-page="transactions">
+    <div class="nav-item" data-page="transactions" data-label="Transactions" aria-label="Transactions">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-      Transactions
+      <span class="nav-label">Transactions</span>
     </div>
-    <div class="nav-item" data-page="accounts">
+    <div class="nav-item" data-page="accounts" data-label="Accounts" aria-label="Accounts">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke-width="1.5"/></svg>
-      Accounts
+      <span class="nav-label">Accounts</span>
     </div>
     <span class="nav-section">Finance</span>
-    <div class="nav-item" data-page="budgets">
+    <div class="nav-item" data-page="budgets" data-label="Budgets" aria-label="Budgets">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-      Budgets
+      <span class="nav-label">Budgets</span>
     </div>
-    <div class="nav-item" data-page="goals">
+    <div class="nav-item" data-page="goals" data-label="Goals" aria-label="Goals">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><circle cx="12" cy="12" r="6" stroke-width="1.5"/><circle cx="12" cy="12" r="2" stroke-width="1.5"/></svg>
-      Goals
+      <span class="nav-label">Goals</span>
     </div>
-    <div class="nav-item" data-page="investments">
+    <div class="nav-item" data-page="investments" data-label="Investments" aria-label="Investments">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline stroke-width="1.5" points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline stroke-width="1.5" points="16 7 22 7 22 13"/></svg>
-      Investments
+      <span class="nav-label">Investments</span>
     </div>
     <span class="nav-section">Tools</span>
-    <div class="nav-item" data-page="reports">
+    <div class="nav-item" data-page="reports" data-label="Reports" aria-label="Reports">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" stroke-width="1.5"/><path stroke-linecap="round" stroke-width="1.5" d="M8 9h8M8 13h5"/></svg>
-      Reports
+      <span class="nav-label">Reports</span>
     </div>
-    <div class="nav-item" data-page="database">
+    <div class="nav-item" data-page="database" data-label="Database" aria-label="Database">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3" stroke-width="1.5"/><path stroke-linecap="round" stroke-width="1.5" d="M4 5v7c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7"/></svg>
-      Database
+      <span class="nav-label">Database</span>
     </div>
-    <div class="nav-item" onclick="openModal('manage-cats')">
+    <div class="nav-item" onclick="openModal('manage-cats')" data-label="Categories" aria-label="Categories">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 12h.01M7 17h.01M11 7h6M11 12h6M11 17h6"/></svg>
-      Categories
+      <span class="nav-label">Categories</span>
     </div>
   </aside>
   <main class="main">
@@ -2712,6 +2783,17 @@ function switchPage(page){
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open')}
+// Desktop icon-rail sidebar: collapsed (circle icons only) <-> expanded (labels).
+// Mirrors the data-theme pattern so the choice persists with no flash on reload.
+function toggleSidebarRail(){
+  const html=document.documentElement;
+  const expanded=html.getAttribute('data-sidebar')==='expanded';
+  const next=expanded?'collapsed':'expanded';
+  html.setAttribute('data-sidebar',next);
+  try{localStorage.setItem('finvault_sidebar',next)}catch(e){}
+  const btn=document.getElementById('sidebar-toggle');
+  if(btn)btn.setAttribute('title',next==='expanded'?'Collapse sidebar':'Expand sidebar');
+}
 function toggleProfileMenu(e){
   if(e)e.stopPropagation();
   document.getElementById('profile-menu').classList.toggle('open');
