@@ -941,7 +941,7 @@ body::before{display:none} /* superseded by .bg-wallpaper element */
    the icon-only treatment.
    ══════════════════════════════════════════════════════════════════ */
 @media(min-width:769px){
-  html{--sidebar-w:86px;--sidebar-w-expanded:250px}
+  html{--sidebar-w:78px;--sidebar-w-expanded:250px}
   html[data-sidebar="expanded"]{--sidebar-w:var(--sidebar-w-expanded)}
 
   .sidebar{transition:width 0.45s var(--ease-spring);align-items:center;padding-top:4px;overflow:visible}
@@ -990,6 +990,55 @@ body::before{display:none} /* superseded by .bg-wallpaper element */
 @keyframes navFadeIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
 @keyframes tooltipIn{from{opacity:0;transform:translateY(-50%) translateX(-4px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}
 @media(prefers-reduced-motion:reduce){.sidebar,.main,.sidebar-toggle,.sidebar-toggle svg,.nav-item{transition:none!important;animation:none!important}}
+
+/* ══════════════════════════════════════════════════════════════════
+   💧 FLOATING DROPLET RAIL — the collapsed icon rail no longer sits on
+   its own rectangular glass panel (.sidebar::before); each circle now
+   carries its own heavy frosted-glass blur instead, so it reads as a
+   loose row of water-droplet buttons floating directly over the page
+   — page content visibly blurs through each circle as it scrolls
+   underneath. The rail also hugs the left edge much more closely now,
+   and buttons are bigger. Hovering shrinks a droplet slightly (rather
+   than growing it) while its title flies out to the right, per the
+   requested effect. Scoped to the desktop, collapsed (icon-only) rail
+   only — the mobile drawer and the expanded label list keep the
+   original solid glass panel, since full text needs a real backdrop
+   to stay legible. Placed last so it wins the cascade.
+   ══════════════════════════════════════════════════════════════════ */
+@media(min-width:769px){
+  html:not([data-sidebar="expanded"]) .sidebar{left:6px;background:transparent}
+  html:not([data-sidebar="expanded"]) .sidebar::before{
+    background:transparent!important;
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+    border:none!important;box-shadow:none!important;
+  }
+  html:not([data-sidebar="expanded"]) .sidebar::after{display:none}
+  html:not([data-sidebar="expanded"]) .main{margin-left:calc(var(--sidebar-w) + 6px)}
+
+  html:not([data-sidebar="expanded"]) .nav-item{
+    width:60px;height:60px;margin:8px auto;
+    background:var(--glass-surface);
+    backdrop-filter:blur(34px) saturate(220%);-webkit-backdrop-filter:blur(34px) saturate(220%);
+    border:1px solid var(--glass-border);
+    box-shadow:0 10px 26px -12px rgba(var(--shadow-color),0.55),
+               0 1px 0 0 rgba(255,255,255,0.22) inset,
+               0 0 0 1px rgba(255,255,255,0.04) inset;
+    transition:background 0.2s,color 0.2s,transform 0.3s var(--ease-spring),box-shadow 0.25s;
+  }
+  html:not([data-sidebar="expanded"]) .nav-item .nav-icon{width:19px;height:19px}
+  html:not([data-sidebar="expanded"]) .nav-item:hover{
+    transform:scale(0.88);
+    background:var(--glass-modal);
+    box-shadow:0 6px 16px -8px rgba(var(--shadow-color),0.5),
+               0 1px 0 0 rgba(255,255,255,0.28) inset;
+  }
+  html:not([data-sidebar="expanded"]) .nav-item:active{transform:scale(0.8)}
+  html:not([data-sidebar="expanded"]) .nav-item.active{
+    background:linear-gradient(160deg, rgba(var(--accent-rgb),0.32), rgba(var(--accent-rgb),0.14)), var(--glass-surface);
+  }
+  /* Tooltip now flies out from the shrunken droplet's edge */
+  html:not([data-sidebar="expanded"]) .nav-item:hover::after{left:66px}
+}
 </style>
 </head>
 <body>
