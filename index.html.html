@@ -611,6 +611,28 @@ body::before{
 .nav-item.active .nav-icon{filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),0.7))}
 .txn-item,.txn-full-item{transition:background 0.2s,transform 0.2s var(--ease-out)}
 .txn-item:hover,.txn-full-item:hover{transform:translateX(2px)}
+
+/* ── Transaction list drag-and-drop (schedule reordering) ── */
+.txn-row-wrap{will-change:transform}
+.txn-draggable .txn-full-item{cursor:grab}
+.txn-drag-handle{display:inline-flex;color:var(--text3);font-size:13px;cursor:grab;user-select:none;margin-right:6px;flex-shrink:0;transition:color 0.15s,transform 0.15s var(--ease-spring)}
+.txn-draggable:hover .txn-drag-handle{color:var(--accent)}
+.txn-row-dragging{position:relative;z-index:30;pointer-events:none}
+.txn-row-dragging .txn-full-item{
+  cursor:grabbing;
+  transform:scale(1.025) rotate(-0.8deg);
+  box-shadow:0 22px 48px -12px rgba(0,0,0,0.55),0 0 0 1px rgba(var(--accent-rgb),0.55);
+  border-color:var(--accent);
+  background:var(--bg3);
+  transition:transform 0.18s var(--ease-spring),box-shadow 0.18s var(--ease-out);
+}
+.txn-row-dragging .txn-drag-handle{color:var(--accent);transform:scale(1.15)}
+.txn-drop-blocked .txn-full-item{
+  border-color:var(--accent5)!important;
+  box-shadow:0 0 0 2px rgba(var(--accent5-rgb,239,68,68),0.3);
+  animation:txnDropShake 0.32s var(--ease-out);
+}
+@keyframes txnDropShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .goal-card,.account-tab,.type-btn,.tab{transition:all 0.2s var(--ease-out)}
 .avatar{transition:box-shadow 0.25s}
 .user-info:hover .avatar{box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.35)}
@@ -3268,57 +3290,112 @@ function renderTransactionsPage(){
     // Manual drag-and-drop reordering only applies to untimed transactions, only while sorted by date,
     // and is always confined to that transaction's own date (see txnDrop).
     const canDrag=isDateSort&&!t.time;
-    const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragover="txnDragOver(event)" ondrop="txnDrop(event)" ondragend="txnDragEnd(event)"`:'';
-    const dragHandle=canDrag?`<span class="txn-drag-handle" style="color:var(--text3);font-size:12px;cursor:grab;user-select:none;margin-right:6px;flex-shrink:0" title="Drag to reorder within this date">⠿⠿</span>`:'';
     const timeBadge=t.time?` <span style="color:var(--text2)">⏱ ${t.time}</span>`:'';
-    return`<div ${dragAttrs}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions"><button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
+    const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragend="txnDragEnd(event)"`:`data-txn-date="${t.date}"`;
+    const rowClass='txn-row-wrap'+(canDrag?' txn-draggable':'');
+    const dragHandle=canDrag?`<span class="txn-drag-handle" title="Drag to reorder within this date">⠿⠿</span>`:'';
+    return`<div class="${rowClass}" ${dragAttrs}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions"><button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
+  initTxnListDnD();
 }
 
 // ── Transaction drag-and-drop reordering (untimed transactions only, same date only) ──
-let txnDragSrcId=null, txnDragSrcDate=null;
+// Premium version: live FLIP-animated reflow of sibling rows, a lifted/rotated drag
+// state on the item being dragged, and a clear blocked-cursor cue when hovering a
+// different date (crossing dates is never allowed).
+let txnDragSrcId=null, txnDragSrcDate=null, txnDragEl=null, txnListListenersBound=false;
+
 function txnDragStart(e){
   const item=e.currentTarget;
   txnDragSrcId=item.dataset.txnId;
   txnDragSrcDate=item.dataset.txnDate;
+  txnDragEl=item;
   e.dataTransfer.effectAllowed='move';
   try{e.dataTransfer.setData('text/plain',String(txnDragSrcId));}catch(err){}
-  item.style.opacity='0.5';
+  // Defer the "lifted" styling one tick so the browser's native drag-ghost
+  // image is captured before we visually alter the source row.
+  setTimeout(()=>{ if(item) item.classList.add('txn-row-dragging'); },0);
 }
-function txnDragOver(e){
-  e.preventDefault();
-  // Only show a "move" cursor when hovering a target within the same date
-  e.dataTransfer.dropEffect=(e.currentTarget.dataset.txnDate===txnDragSrcDate)?'move':'none';
+
+function txnDragEnd(){
+  if(txnDragEl) txnDragEl.classList.remove('txn-row-dragging');
+  document.querySelectorAll('.txn-drop-blocked').forEach(el=>el.classList.remove('txn-drop-blocked'));
+  txnDragSrcId=null; txnDragSrcDate=null; txnDragEl=null;
 }
-function txnDrop(e){
+
+// FLIP: capture rects (First), run the DOM mutation (Last), then animate every
+// row that moved from its old position back to its new one (Invert → Play).
+function txnFlipReorder(list, mutate){
+  const rows=[...list.querySelectorAll('.txn-row-wrap')];
+  const before=new Map();
+  rows.forEach(r=>before.set(r, r.getBoundingClientRect()));
+  mutate();
+  rows.forEach(r=>{
+    const b=before.get(r);
+    if(!b) return;
+    const a=r.getBoundingClientRect();
+    const dx=b.left-a.left, dy=b.top-a.top;
+    if(dx||dy){
+      r.style.transition='none';
+      r.style.transform=`translate(${dx}px,${dy}px)`;
+      requestAnimationFrame(()=>{
+        r.style.transition='transform .32s var(--ease-spring)';
+        r.style.transform='';
+      });
+    }
+  });
+}
+
+function txnListDragOver(e){
+  if(!txnDragSrcId) return;
   e.preventDefault();
-  const targetItem=e.currentTarget;
-  const targetId=targetItem.dataset.txnId;
-  const targetDate=targetItem.dataset.txnDate;
-  if(txnDragSrcId===null||targetId===txnDragSrcId) return;
-  // Hard rule: a transaction can never be dragged to a different date
-  if(targetDate!==txnDragSrcDate){
-    toast('একই তারিখের মধ্যেই reorder করা যাবে','error');
+  const list=e.currentTarget;
+  const overRow=e.target.closest('.txn-draggable');
+  document.querySelectorAll('.txn-drop-blocked').forEach(el=>{if(el!==overRow)el.classList.remove('txn-drop-blocked')});
+  if(!overRow||overRow.dataset.txnId===txnDragSrcId){ e.dataTransfer.dropEffect='move'; return; }
+  if(overRow.dataset.txnDate!==txnDragSrcDate){
+    // A different date — clearly signal this drop target is blocked and never move the row here.
+    overRow.classList.add('txn-drop-blocked');
+    e.dataTransfer.dropEffect='none';
     return;
   }
-  const dateItems=DATA.transactions.filter(t=>t.date===targetDate&&!t.time);
-  const srcIdx=dateItems.findIndex(t=>String(t.id)===String(txnDragSrcId));
-  const tgtIdx=dateItems.findIndex(t=>String(t.id)===String(targetId));
-  if(srcIdx===-1||tgtIdx===-1) return;
-  const [moved]=dateItems.splice(srcIdx,1);
-  dateItems.splice(tgtIdx,0,moved);
-  dateItems.forEach((t,i)=>{
-    const real=DATA.transactions.find(x=>x.id===t.id);
+  overRow.classList.remove('txn-drop-blocked');
+  e.dataTransfer.dropEffect='move';
+  const srcRow=list.querySelector(`.txn-row-wrap[data-txn-id="${txnDragSrcId}"]`);
+  if(!srcRow||srcRow===overRow) return;
+  const rect=overRow.getBoundingClientRect();
+  const placeBefore=(e.clientY-rect.top)<rect.height/2;
+  const alreadyBefore=srcRow.nextElementSibling===overRow;
+  const alreadyAfter=overRow.nextElementSibling===srcRow;
+  if((placeBefore&&alreadyBefore)||(!placeBefore&&alreadyAfter)) return;
+  txnFlipReorder(list,()=>{
+    if(placeBefore) list.insertBefore(srcRow, overRow);
+    else list.insertBefore(srcRow, overRow.nextSibling);
+  });
+}
+
+function txnListDrop(e){
+  if(!txnDragSrcId) return;
+  e.preventDefault();
+  const list=e.currentTarget;
+  // Commit the manual order exactly as it now appears in the DOM for this date group.
+  const domOrder=[...list.querySelectorAll(`.txn-draggable[data-txn-date="${txnDragSrcDate}"]`)];
+  domOrder.forEach((row,i)=>{
+    const real=DATA.transactions.find(t=>String(t.id)===String(row.dataset.txnId));
     if(real) real.sortOrder=i;
   });
   saveData();
-  renderTransactionsPage();
+  txnDragEnd();
 }
-function txnDragEnd(e){
-  e.currentTarget.style.opacity='';
-  txnDragSrcId=null;
-  txnDragSrcDate=null;
+
+function initTxnListDnD(){
+  if(txnListListenersBound) return;
+  const list=document.getElementById('txn-full-list');
+  if(!list) return;
+  list.addEventListener('dragover', txnListDragOver);
+  list.addEventListener('drop', txnListDrop);
+  txnListListenersBound=true;
 }
 // ══ BUDGET MONTH STATE ══════════════════════════════════════════════════════
 let budgetSelectedMonth = (() => {
