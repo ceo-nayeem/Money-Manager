@@ -2377,11 +2377,18 @@ function populateCatSelect(id,cats,selected=null){
             if(oIdx!==-1){
               if(oldT.type==='income') DATA.accounts[oIdx].balance-=s.amount;
               else if(oldT.type==='expense') DATA.accounts[oIdx].balance+=s.amount;
+              else if(oldT.type==='payable') DATA.accounts[oIdx].balance-=s.amount;
+              else if(oldT.type==='receivable') DATA.accounts[oIdx].balance+=s.amount;
             }
           });
         } else if(oldT.account){
           const oIdx=DATA.accounts.findIndex(a=>a.id===oldT.account);
-          if(oIdx!==-1){if(oldT.type==='income')DATA.accounts[oIdx].balance-=oldT.amount;else if(oldT.type==='expense')DATA.accounts[oIdx].balance+=oldT.amount;}
+          if(oIdx!==-1){
+            if(oldT.type==='income')DATA.accounts[oIdx].balance-=oldT.amount;
+            else if(oldT.type==='expense')DATA.accounts[oIdx].balance+=oldT.amount;
+            else if(oldT.type==='payable')DATA.accounts[oIdx].balance-=oldT.amount;
+            else if(oldT.type==='receivable')DATA.accounts[oIdx].balance+=oldT.amount;
+          }
         }
       }
       // Apply new balance per split
@@ -2391,6 +2398,8 @@ function populateCatSelect(id,cats,selected=null){
         if(nIdx!==-1){
           if(type==='income') DATA.accounts[nIdx].balance+=s.amount;
           else if(type==='expense') DATA.accounts[nIdx].balance-=s.amount;
+          else if(type==='payable') DATA.accounts[nIdx].balance+=s.amount;
+          else if(type==='receivable') DATA.accounts[nIdx].balance-=s.amount;
         }
       });
     } else {
@@ -2402,6 +2411,8 @@ function populateCatSelect(id,cats,selected=null){
         if(nIdx!==-1){
           if(type==='income') DATA.accounts[nIdx].balance+=s.amount;
           else if(type==='expense') DATA.accounts[nIdx].balance-=s.amount;
+          else if(type==='payable') DATA.accounts[nIdx].balance+=s.amount;
+          else if(type==='receivable') DATA.accounts[nIdx].balance-=s.amount;
         }
       });
     }
@@ -2526,6 +2537,8 @@ function deleteTxn(id){
         if(accIdx!==-1){
           if(txn.type==='income')        DATA.accounts[accIdx].balance-=s.amount;
           else if(txn.type==='expense')  DATA.accounts[accIdx].balance+=s.amount;
+          else if(txn.type==='payable')  DATA.accounts[accIdx].balance-=s.amount;
+          else if(txn.type==='receivable') DATA.accounts[accIdx].balance+=s.amount;
         }
       });
     } else if(txn.account){
