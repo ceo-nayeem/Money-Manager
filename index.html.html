@@ -3258,7 +3258,7 @@ function renderTransactionsPage(){
     // Same date: time-set transactions sorted chronologically come first,
     // then no-time transactions keep their manual (drag-and-drop) order.
     const aHasTime=!!a.time, bHasTime=!!b.time;
-    if(aHasTime&&bHasTime) return a.time.localeCompare(b.time);
+    if(aHasTime&&bHasTime) return b.time.localeCompare(a.time);
     if(aHasTime&&!bHasTime) return -1;
     if(!aHasTime&&bHasTime) return 1;
     return (typeof a.sortOrder==='number'?a.sortOrder:0)-(typeof b.sortOrder==='number'?b.sortOrder:0);
