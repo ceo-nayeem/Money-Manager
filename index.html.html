@@ -1253,7 +1253,7 @@ setTimeout(function(){
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
         <div class="kpi-grid">
-          <div class="kpi-card blue"><div class="kpi-label">Total Balance</div><div class="kpi-value" id="kpi-balance">৳0</div><div class="kpi-change up" id="kpi-balance-ch">Net position</div><div class="kpi-value" id="kpi-balance-minus-budget" style="font-size:13px;opacity:0.5;margin-top:4px">৳0</div><div class="kpi-icon">💰</div></div>
+          <div class="kpi-card blue"><div class="kpi-label">Total Balance</div><div class="kpi-value" id="kpi-balance">৳0</div><div class="kpi-change up" id="kpi-balance-ch">Net position</div><div style="display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:4px"><span class="kpi-value" id="kpi-balance-minus-budget" style="font-size:10.5px;font-weight:600;letter-spacing:0;opacity:0.55">৳0</span><span class="kpi-value" id="kpi-balance-minus-debt" style="font-size:10.5px;font-weight:600;letter-spacing:0;opacity:0.55">৳0</span></div><div class="kpi-icon">💰</div></div>
           <div class="kpi-card green"><div class="kpi-label">Monthly Income</div><div class="kpi-value" id="kpi-income">৳0</div><div class="kpi-change up">▲ This month</div><div class="kpi-icon">📥</div></div>
           <div class="kpi-card amber"><div class="kpi-label">Monthly Expenses</div><div class="kpi-value" id="kpi-expense">৳0</div><div class="kpi-change" id="kpi-expense-ch">This month</div><div class="kpi-icon">📤</div></div>
           <div class="kpi-card purple"><div class="kpi-label">Net Savings</div><div class="kpi-value" id="kpi-savings">৳0</div><div class="kpi-change" id="kpi-savings-ch">Savings rate</div><div class="kpi-icon">🏦</div></div>
@@ -3067,13 +3067,19 @@ applyTheme();
 function calcStats(){
   const income=DATA.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=DATA.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  // Payable pending = total payable minus paid amounts
+  // Payable pending = total payable minus paid amounts (কত টাকা এখনো শোধ করা বাকি)
   const payableTxns=DATA.transactions.filter(t=>t.type==='payable');
   const payable=payableTxns.reduce((s,t)=>s+(t.amount-(t.paidAmount||0)),0);
-  // Receivable pending = total receivable minus collected amounts
+  // Receivable pending = total receivable minus collected amounts (কত টাকা এখনো পাওয়া বাকি)
   const receivableTxns=DATA.transactions.filter(t=>t.type==='receivable');
   const receivable=receivableTxns.reduce((s,t)=>s+(t.amount-(t.paidAmount||0)),0);
-  const balance=DATA.profile.openingBalance+income-expense;
+  // ঋণ নেওয়ার (payable) পুরো amount ক্যাশ ব্যালেন্সে + হয় (টাকা হাতে আসে),
+  // আর ধার দেওয়ার (receivable) পুরো amount ক্যাশ ব্যালেন্স থেকে − হয় (টাকা হাতছাড়া হয়)।
+  // পরিশোধ/আদায় নিজে থেকেই আলাদা expense/income এন্ট্রি হিসেবে ধরা থাকে, তাই এখানে পুরো
+  // মূল amount ব্যবহার করা হচ্ছে (pending নয়) — দ্বিগুণ হিসাব এড়াতে।
+  const payableFull=payableTxns.reduce((s,t)=>s+t.amount,0);
+  const receivableFull=receivableTxns.reduce((s,t)=>s+t.amount,0);
+  const balance=DATA.profile.openingBalance+income-expense+payableFull-receivableFull;
   const savings=income-expense;
   return{income,expense,balance,savings,payable,receivable};
 }
@@ -3104,12 +3110,15 @@ function switchFlowChart(el,period){document.querySelectorAll('.tab').forEach(t=
 function renderKPI(){
   const{income,expense,balance,savings,payable,receivable}=calcStats();
   document.getElementById('kpi-balance').textContent=fmtFull(balance);
-  // বাজেট বাদ দিয়ে টোটাল ব্যালেন্স (কম opacity তে দেখানো হবে)
+  // বাজেট বাদ দিয়ে ও ঋণ (payable pending) বাদ দিয়ে টোটাল ব্যালেন্স — ছোট ফন্টে, পাশাপাশি অ্যালাইন করা
   const curMonthStr=(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;})();
   const totalBudgetAmt=DATA.budgets.reduce((s,b)=>s+getBudgetLimitForMonth(b,curMonthStr),0);
   const balanceMinusBudget=balance-totalBudgetAmt;
   const bmbEl=document.getElementById('kpi-balance-minus-budget');
-  if(bmbEl)bmbEl.textContent='বাজেট বাদে: '+fmtFull(balanceMinusBudget);
+  if(bmbEl)bmbEl.textContent='বাজেট বাদে '+fmtFull(balanceMinusBudget);
+  const balanceMinusDebt=balance-payable;
+  const bmdEl=document.getElementById('kpi-balance-minus-debt');
+  if(bmdEl)bmdEl.textContent='ঋণ বাদে '+fmtFull(balanceMinusDebt);
   document.getElementById('kpi-income').textContent=fmt(income);
   document.getElementById('kpi-expense').textContent=fmt(expense);
   document.getElementById('kpi-savings').textContent=fmtFull(savings);
