@@ -1293,7 +1293,7 @@ setTimeout(function(){
         <div class="txn-summary-bar" id="txn-summary-bar"></div>
         <div class="txn-page-header">
           <div class="filter-group">
-            <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="payable">Payable</option><option value="receivable">Receivable</option></select>
+            <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="payable">Payable</option><option value="receivable">Receivable</option><option value="transfer">🔁 Transfer</option></select>
             <select class="filter-select" id="filter-cat" onchange="renderTransactionsPage()"><option value="all">All Categories</option></select>
             <select class="filter-select" id="filter-sort" onchange="renderTransactionsPage()"><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
             <button class="btn btn-ghost btn-sm" title="ফিল্টার রিসেট করুন" onclick="resetTxnFilters()">↺ Reset Filters</button>
@@ -1764,6 +1764,10 @@ setTimeout(function(){
     <div class="form-group">
       <label class="form-label">Date</label>
       <input class="form-input" type="date" id="transfer-date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">সময় (Time) — অপশনাল</label>
+      <input class="form-input" type="time" id="transfer-time">
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('transfer')">Cancel</button>
@@ -2507,7 +2511,14 @@ function deleteTxn(id){
   // Revert account balance effect
   if(txn){
     ensureAccounts();
-    if(txn.splits&&txn.splits.length>0){
+    if(txn.type==='transfer'){
+      // Balance transfer transaction: reverse the money movement and remove the linked transfer record
+      const fi=DATA.accounts.findIndex(a=>a.id===txn.fromAccount);
+      const ti=DATA.accounts.findIndex(a=>a.id===txn.toAccount);
+      if(fi!==-1)DATA.accounts[fi].balance+=txn.amount;
+      if(ti!==-1)DATA.accounts[ti].balance-=txn.amount;
+      if(txn.transferId&&Array.isArray(DATA.transfers))DATA.transfers=DATA.transfers.filter(tr=>tr.id!==txn.transferId);
+    } else if(txn.splits&&txn.splits.length>0){
       // Group transaction: revert per-split balances
       txn.splits.forEach(s=>{
         const sAcc=s.account||txn.account||'cash';
@@ -3130,11 +3141,15 @@ function renderKPI(){
   const el=document.getElementById('dash-txn-list');if(!el)return;
   const recent=[...DATA.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
   el.innerHTML=recent.length?recent.map(t=>{
-    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
-    const sign=t.type==='income'?'+':t.type==='payable'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
+    const isTransfer=t.type==='transfer';
+    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':isTransfer?'#8b5cf6':'#ef4444';
+    const sign=t.type==='income'?'+':t.type==='payable'?'🔴 ':t.type==='receivable'?'🔵 ':isTransfer?'🔁 ':'-';
     const isLR=(t.type==='payable'||t.type==='receivable');
-    const subLabel=isLR&&t.person?t.person:t.cat;
-    const grpBadge=t.splits&&t.splits.length>0?` <span style="font-size:9px;color:var(--accent)">📦${t.splits.length}</span>`:'';return`<div class="txn-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}${grpBadge}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
+    const subLabel=isTransfer?`${t.fromName||'—'} → ${t.toName||'—'}`:isLR&&t.person?t.person:t.cat;
+    const grpBadge=t.splits&&t.splits.length>0?` <span style="font-size:9px;color:var(--accent)">📦${t.splits.length}</span>`:'';
+    const transferBadge=isTransfer?` <span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#8b5cf620;color:#8b5cf6;font-weight:600">🔁 Transfer</span>`:'';
+    const rowStyle=isTransfer?` style="border-left:3px solid #8b5cf6;background:#8b5cf60c;border-radius:8px"`:'';
+    return`<div class="txn-item"${rowStyle}><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}${grpBadge}${transferBadge}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div></div><div><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
   }).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet</div></div>`;
 }
   
@@ -3240,7 +3255,7 @@ function renderTransactionsPage(){
   if(catF!=='all')txns=txns.filter(t=>t.cat===catF);
   const isFiltered=(typeF!=='all'||catF!=='all');
   const filteredTotal=txns.reduce((s,t)=>s+t.amount,0);
-  const typeLabels={income:'Income',expense:'Expense',payable:'🔴 Payable',receivable:'🔵 Receivable'};
+  const typeLabels={income:'Income',expense:'Expense',payable:'🔴 Payable',receivable:'🔵 Receivable',transfer:'🔁 Transfer'};
   let filterLabel='Filtered Total';
   if(catF!=='all'&&typeF!=='all')filterLabel=`${catF} (${typeLabels[typeF]})`;
   else if(catF!=='all')filterLabel=catF;
@@ -3265,10 +3280,14 @@ function renderTransactionsPage(){
   });
   const el=document.getElementById('txn-full-list');if(!el)return;
   el.innerHTML=txns.length?txns.map(t=>{
-    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
-    const sign=t.type==='income'?'+':t.type==='payable'?'🔴':t.type==='receivable'?'🔵':'-';
-    const label=t.type==='payable'?'Payable':t.type==='receivable'?'Receivable':t.type;
+    const isTransfer=t.type==='transfer';
+    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':isTransfer?'#8b5cf6':'#ef4444';
+    const sign=t.type==='income'?'+':t.type==='payable'?'🔴':t.type==='receivable'?'🔵':isTransfer?'🔁':'-';
+    const label=t.type==='payable'?'Payable':t.type==='receivable'?'Receivable':isTransfer?'Transfer':t.type;
     const isLR=(t.type==='payable'||t.type==='receivable');
+    // ব্যালেন্স ট্রান্সফার ট্রানজেকশনকে সহজে চেনার জন্য একটি ইউনিক ব্যাজ ও রো-স্টাইল
+    const transferBadge=isTransfer?`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#8b5cf620;color:#8b5cf6;font-weight:600;margin-left:6px">🔁 Transfer</span>`:'';
+    const transferRowStyle=isTransfer?` style="border-left:3px solid #8b5cf6;background:#8b5cf60c;border-radius:8px"`:'';
     const paid=t.paidAmount||0;
     const remaining=t.amount-paid;
     const status=t.status||'';
@@ -3278,7 +3297,7 @@ function renderTransactionsPage(){
       else if(status==='partial') statusBadge=`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#f59e0b20;color:#f59e0b;font-weight:600;margin-left:6px">⟳ Partial (${fmt(remaining)} left)</span>`;
       else statusBadge=`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#ef444420;color:#ef4444;font-weight:600;margin-left:6px">⚠ Pending</span>`;
     }
-    const personInfo=isLR&&t.person?`<span style="color:var(--accent);font-size:10px">👤 ${t.person}</span> · `:'';
+    const personInfo=isTransfer?`<span style="color:#8b5cf6;font-size:10px">${t.fromName||'—'} → ${t.toName||'—'}</span> · `:isLR&&t.person?`<span style="color:var(--accent);font-size:10px">👤 ${t.person}</span> · `:'';
     const payBtn=isLR&&status!=='settled'
       ?`<button class="btn btn-sm" style="background:${t.type==='payable'?'#f59e0b20':'#06b6d420'};color:${t.type==='payable'?'#f59e0b':'#06b6d4'};border:1px solid ${t.type==='payable'?'#f59e0b40':'#06b6d440'};font-size:10px" onclick="openModal('payoff',${JSON.stringify(t).replace(/"/g,'&quot;')})">${t.type==='payable'?'💳 Pay Back':'💰 Pay Off'}</button>`
       :'';
@@ -3294,7 +3313,8 @@ function renderTransactionsPage(){
     const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragend="txnDragEnd(event)"`:`data-txn-date="${t.date}"`;
     const rowClass='txn-row-wrap'+(canDrag?' txn-draggable':'');
     const dragHandle=canDrag?`<span class="txn-drag-handle" title="Drag to reorder within this date">⠿⠿</span>`:'';
-    return`<div class="${rowClass}" ${dragAttrs}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions"><button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
+    const editBtn=isTransfer?'':`<button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>`;
+    return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions">${editBtn}<button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
   initTxnListDnD();
@@ -3836,12 +3856,17 @@ function selectAccountTab(id){
 function renderAccountTxnList(accountId){
   const el=document.getElementById('account-txn-list');if(!el)return;
   let txns=[...DATA.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if(accountId!=='all') txns=txns.filter(t=>t.account===accountId||(!t.account&&accountId==='cash'));
+  if(accountId!=='all') txns=txns.filter(t=>t.account===accountId||(!t.account&&!t.fromAccount&&!t.toAccount&&accountId==='cash')||t.fromAccount===accountId||t.toAccount===accountId);
   if(!txns.length){el.innerHTML=`<div class="empty" style="padding:36px"><div class="empty-icon">📭</div><div class="empty-text">No transactions for this account</div></div>`;return}
   el.innerHTML=txns.slice(0,20).map(t=>{
-    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
-    const sign=t.type==='income'?'+':t.type==='payable'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
-    return`<div class="txn-full-item"><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}</div><div class="txn-cat">${t.cat} · ${t.date}${t.account?` · <span style="color:var(--accent);font-size:10px">${DATA.accounts.find(a=>a.id===t.account)?.name||t.account}</span>`:''}</div></div></div><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
+    const isTransfer=t.type==='transfer';
+    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':isTransfer?'#8b5cf6':'#ef4444';
+    // এই অ্যাকাউন্ট থেকে টাকা গেলে '-', এই অ্যাকাউন্টে টাকা এলে '+' দেখাবে
+    const sign=isTransfer?(accountId===t.toAccount?'+':accountId===t.fromAccount?'-':'🔁'):t.type==='income'?'+':t.type==='payable'?'🔴 ':t.type==='receivable'?'🔵 ':'-';
+    const transferBadge=isTransfer?` <span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#8b5cf620;color:#8b5cf6;font-weight:600">🔁 Transfer</span>`:'';
+    const rowStyle=isTransfer?` style="border-left:3px solid #8b5cf6;background:#8b5cf60c;border-radius:8px"`:'';
+    const subInfo=isTransfer?`${t.fromName||'—'} → ${t.toName||'—'}`:`${t.cat}${t.account?` · <span style="color:var(--accent);font-size:10px">${DATA.accounts.find(a=>a.id===t.account)?.name||t.account}</span>`:''}`;
+    return`<div class="txn-full-item"${rowStyle}><div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div><div><div class="txn-name">${t.desc}${transferBadge}</div><div class="txn-cat">${subInfo} · ${t.date}</div></div></div><div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div></div></div>`;
   }).join('');
 }
 
@@ -3929,6 +3954,8 @@ function openTransferModal(){
   document.getElementById('transfer-to').selectedIndex=1;
   document.getElementById('transfer-amount').value='';
   document.getElementById('transfer-date').value=today();
+  const timeEl=document.getElementById('transfer-time');
+  if(timeEl)timeEl.value='';
   document.getElementById('modal-transfer').classList.add('open');
 }
 
@@ -3938,6 +3965,8 @@ function doTransfer(){
   const toId=document.getElementById('transfer-to').value;
   const amt=parseFloat(document.getElementById('transfer-amount').value);
   const date=document.getElementById('transfer-date').value;
+  const timeEl=document.getElementById('transfer-time');
+  const time=timeEl?timeEl.value:'';
   if(fromId===toId){toast('Select different accounts','error');return}
   if(!amt||amt<=0){toast('Enter a valid amount','error');return}
   const fi=DATA.accounts.findIndex(a=>a.id===fromId);
@@ -3947,9 +3976,29 @@ function doTransfer(){
   DATA.accounts[fi].balance-=amt;
   DATA.accounts[ti].balance+=amt;
   if(!DATA.transfers)DATA.transfers=[];
-  DATA.transfers.unshift({id:uid(),from:fromId,to:toId,amount:amt,date});
-  saveData();closeModal('transfer');renderAccountsPage();
-  toast(`৳${Math.round(amt).toLocaleString()} transferred from ${DATA.accounts[fi].name} to ${DATA.accounts[ti].name} ✓`);
+  const transferId=uid();
+  const fromName=DATA.accounts[fi].name, toName=DATA.accounts[ti].name;
+  DATA.transfers.unshift({id:transferId,from:fromId,to:toId,amount:amt,date,time});
+  // ব্যালেন্স ট্রান্সফারকেও একটি ইউনিক, চেনা-যায় এমন ট্রানজেকশন হিসেবে যোগ করা হচ্ছে
+  // যাতে এটি Transactions তালিকায় সময় অনুযায়ী সাজানো যায় এবং সহজেই আলাদা করা যায়।
+  if(!Array.isArray(DATA.transactions))DATA.transactions=[];
+  DATA.transactions.unshift({
+    id:uid(),
+    type:'transfer',
+    desc:`Balance Transfer: ${fromName} → ${toName}`,
+    cat:'Transfer',
+    emoji:'🔁',
+    amount:amt,
+    date,
+    time:time||'',
+    transferId,
+    fromAccount:fromId,
+    toAccount:toId,
+    fromName,
+    toName
+  });
+  saveData();closeModal('transfer');renderAccountsPage();renderAll();
+  toast(`৳${Math.round(amt).toLocaleString()} transferred from ${fromName} to ${toName} ✓`);
 }
 function renderAll(){
   renderKPI();renderDashTxnList();renderDashBudgets();renderDashGoals();buildFlowChart();buildDonutChart();
