@@ -1523,7 +1523,11 @@ setTimeout(function(){
     <input type="hidden" id="txn-smart" value="">
 
     <div class="form-group"><label class="form-label">Description / Note</label><input class="form-input" type="text" id="txn-desc" placeholder="e.g. Lunch at restaurant"></div>
-    <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="txn-date"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="txn-date"></div>
+      <div class="form-group"><label class="form-label">Time <span style="color:var(--text3);text-transform:none;font-weight:400">(optional)</span></label><input class="form-input" type="time" id="txn-time"></div>
+    </div>
+    <div style="font-size:10px;color:var(--text2);margin:-8px 0 12px 2px">সময় দিলে ঐ তারিখের মধ্যে transaction গুলো সময় অনুযায়ী সাজানো হবে। সময় না দিলে drag করে নিজের মতো সাজাতে পারবেন।</div>
     <input type="hidden" id="txn-edit-id">
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('add-txn')">Cancel</button>
@@ -2155,6 +2159,12 @@ const fmt=n=>'৳'+Math.abs(Math.round(n)).toLocaleString('en-IN');
 const fmtFull=n=>'৳'+Math.round(n).toLocaleString('en-IN');
 const today=()=>new Date().toISOString().split('T')[0];
 const uid=()=>Date.now()+Math.floor(Math.random()*9999);
+// Manual drag-order for transactions that have no time set, scoped per date
+function nextTxnSortOrder(date){
+  const existing=(DATA.transactions||[]).filter(t=>t.date===date&&!t.time&&typeof t.sortOrder==='number');
+  if(!existing.length) return 0;
+  return Math.max(...existing.map(t=>t.sortOrder))+1;
+}
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',3200)}
 
 // ── Ripple micro-interaction (single delegated listener — lightweight) ─────
@@ -2201,6 +2211,7 @@ function prepTxnModal(data){
   document.getElementById('txn-amount').value=data?data.amount:'';
   document.getElementById('txn-desc').value=data?data.desc:'';
   document.getElementById('txn-date').value=data?data.date:today();
+  document.getElementById('txn-time').value=data?(data.time||''):'';
   document.getElementById('txn-smart').value='';
   // Set selected category
   if(txnType==='income'){
@@ -2288,6 +2299,7 @@ function populateCatSelect(id,cats,selected=null){
   const smartText='';
   const desc = document.getElementById('txn-desc').value.trim();
   const date = document.getElementById('txn-date').value;
+  const time = document.getElementById('txn-time').value||'';
   const type = txnType;
   const editId = editTxnId;
 
@@ -2320,9 +2332,11 @@ function populateCatSelect(id,cats,selected=null){
     const accountId2=document.getElementById('txn-account').value||'';
     const person2=isLR2?(document.getElementById('txn-person').value.trim()||''):'';
     const oldTxnG=editId?DATA.transactions.find(t=>t.id==editId):null;
+    const sortOrderG=(!time)?((oldTxnG&&!oldTxnG.time&&oldTxnG.date===date&&typeof oldTxnG.sortOrder==='number')?oldTxnG.sortOrder:nextTxnSortOrder(date)):undefined;
     const txnG={
       id:editId||uid(), type, amount:groupTotal, cat:splits[0].cat, desc, date,
-      emoji:'📦', account:accountId2, splits,
+      emoji:'📦', account:accountId2, splits, time,
+      ...(sortOrderG!==undefined&&{sortOrder:sortOrderG}),
       ...(isLR2&&{person:person2,paidAmount:oldTxnG?(oldTxnG.paidAmount||0):0,status:oldTxnG?(oldTxnG.paidAmount>=groupTotal?'settled':oldTxnG.status||'pending'):'pending'})
     };
     if(editId){
@@ -2398,11 +2412,14 @@ function populateCatSelect(id,cats,selected=null){
   if(!amount||amount<=0){toast('Please enter a valid amount','error');return}
 
   const oldTxnForLR=editId?DATA.transactions.find(t=>t.id==editId):null;
+  const sortOrderN=(!time)?((oldTxnForLR&&!oldTxnForLR.time&&oldTxnForLR.date===date&&typeof oldTxnForLR.sortOrder==='number')?oldTxnForLR.sortOrder:nextTxnSortOrder(date)):undefined;
   const txn={
     id:editId||uid(),
     type,amount,cat,desc:finalDesc,date,
     emoji:getCatEmoji(cat),
     account:accountId,
+    time,
+    ...(sortOrderN!==undefined&&{sortOrder:sortOrderN}),
     ...(isLR&&{person,paidAmount:oldTxnForLR?(oldTxnForLR.paidAmount||0):0,status:oldTxnForLR?(oldTxnForLR.paidAmount>=amount?'settled':oldTxnForLR.status||'pending'):'pending'})
   };
 
@@ -2551,7 +2568,9 @@ function doPayoff(){
     date,
     emoji:isPayable?'💳':'💰',
     account:accountId,
-    linkedLRId:txnId
+    linkedLRId:txnId,
+    time:'',
+    sortOrder:nextTxnSortOrder(date)
   });
   saveData();closeModal('payoff');renderAll();
   toast((isPayable?'Pay back':'Pay off')+' করা হয়েছে: '+fmt(payAmt)+' ✓');
@@ -3208,7 +3227,20 @@ function renderTransactionsPage(){
   const sb=document.getElementById('txn-summary-bar');
   const filteredCard=isFiltered?`<div class="txn-summary-item" style="border-color:var(--accent)"><div class="txn-summary-label">🔎 ${filterLabel}</div><div class="txn-summary-val ${filterColor}">${fmt(filteredTotal)}</div><div style="font-size:10px;color:var(--text2);margin-top:2px">${txns.length} টি ট্রানজেকশন</div></div>`:'';
   if(sb)sb.innerHTML=filteredCard+`<div class="txn-summary-item"><div class="txn-summary-label">Total Income</div><div class="txn-summary-val up">${fmt(income)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Total Expenses</div><div class="txn-summary-val down">${fmt(expense)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔴 Payable (ঋণ)</div><div class="txn-summary-val" style="color:#f59e0b">${fmt(payable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">🔵 Receivable (পাওনা)</div><div class="txn-summary-val" style="color:#06b6d4">${fmt(receivable)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Net</div><div class="txn-summary-val ${savings>=0?'up':'down'}">${fmtFull(savings)}</div></div><div class="txn-summary-item"><div class="txn-summary-label">Count</div><div class="txn-summary-val">${DATA.transactions.length}</div></div>`;
-  txns.sort((a,b)=>sortF==='date-desc'?new Date(b.date)-new Date(a.date):sortF==='date-asc'?new Date(a.date)-new Date(b.date):sortF==='amount-desc'?b.amount-a.amount:a.amount-b.amount);
+  const isDateSort=(sortF==='date-desc'||sortF==='date-asc');
+  txns.sort((a,b)=>{
+    if(sortF==='amount-desc') return b.amount-a.amount;
+    if(sortF==='amount-asc') return a.amount-b.amount;
+    const dateDiff=sortF==='date-desc'?(new Date(b.date)-new Date(a.date)):(new Date(a.date)-new Date(b.date));
+    if(dateDiff!==0) return dateDiff;
+    // Same date: time-set transactions sorted chronologically come first,
+    // then no-time transactions keep their manual (drag-and-drop) order.
+    const aHasTime=!!a.time, bHasTime=!!b.time;
+    if(aHasTime&&bHasTime) return a.time.localeCompare(b.time);
+    if(aHasTime&&!bHasTime) return -1;
+    if(!aHasTime&&bHasTime) return 1;
+    return (typeof a.sortOrder==='number'?a.sortOrder:0)-(typeof b.sortOrder==='number'?b.sortOrder:0);
+  });
   const el=document.getElementById('txn-full-list');if(!el)return;
   el.innerHTML=txns.length?txns.map(t=>{
     const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':'#ef4444';
@@ -3233,9 +3265,60 @@ function renderTransactionsPage(){
     const inGroupBadge=t.groupParentId?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:rgba(var(--accent2-rgb),0.14);color:var(--accent2);font-weight:600;margin-left:5px">🔗 In group</span>`:'';
     const subRows=isGroup?`<div id="grp-${t.id}" style="display:none;padding:6px 0 2px 44px;border-top:1px solid var(--border);">`+t.splits.map(s=>{const accName=s.account?(DATA.accounts.find(a=>a.id===s.account)||{name:s.account}).name:'Cash';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:12px;"><span style="color:var(--text2)">${s.emoji||getCatEmoji(s.cat)} ${s.desc||s.cat} <span style="color:var(--text3);font-size:10px">· ${s.cat}</span></span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;padding:1px 6px;border-radius:6px;background:var(--bg4);color:var(--text2)">${accName}</span><span style="font-family:JetBrains Mono;font-weight:600;color:${color}">-${fmt(s.amount)}</span></span></div>`;}).join('')+`</div>`:'';
     const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleGrp('${t.id}',this)">▼ Show</button>`:'';
-    return`<div><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0"><div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions"><button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
+    // Manual drag-and-drop reordering only applies to untimed transactions, only while sorted by date,
+    // and is always confined to that transaction's own date (see txnDrop).
+    const canDrag=isDateSort&&!t.time;
+    const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragover="txnDragOver(event)" ondrop="txnDrop(event)" ondragend="txnDragEnd(event)"`:'';
+    const dragHandle=canDrag?`<span class="txn-drag-handle" style="color:var(--text3);font-size:12px;cursor:grab;user-select:none;margin-right:6px;flex-shrink:0" title="Drag to reorder within this date">⠿⠿</span>`:'';
+    const timeBadge=t.time?` <span style="color:var(--text2)">⏱ ${t.time}</span>`:'';
+    return`<div ${dragAttrs}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions"><button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
+}
+
+// ── Transaction drag-and-drop reordering (untimed transactions only, same date only) ──
+let txnDragSrcId=null, txnDragSrcDate=null;
+function txnDragStart(e){
+  const item=e.currentTarget;
+  txnDragSrcId=item.dataset.txnId;
+  txnDragSrcDate=item.dataset.txnDate;
+  e.dataTransfer.effectAllowed='move';
+  try{e.dataTransfer.setData('text/plain',String(txnDragSrcId));}catch(err){}
+  item.style.opacity='0.5';
+}
+function txnDragOver(e){
+  e.preventDefault();
+  // Only show a "move" cursor when hovering a target within the same date
+  e.dataTransfer.dropEffect=(e.currentTarget.dataset.txnDate===txnDragSrcDate)?'move':'none';
+}
+function txnDrop(e){
+  e.preventDefault();
+  const targetItem=e.currentTarget;
+  const targetId=targetItem.dataset.txnId;
+  const targetDate=targetItem.dataset.txnDate;
+  if(txnDragSrcId===null||targetId===txnDragSrcId) return;
+  // Hard rule: a transaction can never be dragged to a different date
+  if(targetDate!==txnDragSrcDate){
+    toast('একই তারিখের মধ্যেই reorder করা যাবে','error');
+    return;
+  }
+  const dateItems=DATA.transactions.filter(t=>t.date===targetDate&&!t.time);
+  const srcIdx=dateItems.findIndex(t=>String(t.id)===String(txnDragSrcId));
+  const tgtIdx=dateItems.findIndex(t=>String(t.id)===String(targetId));
+  if(srcIdx===-1||tgtIdx===-1) return;
+  const [moved]=dateItems.splice(srcIdx,1);
+  dateItems.splice(tgtIdx,0,moved);
+  dateItems.forEach((t,i)=>{
+    const real=DATA.transactions.find(x=>x.id===t.id);
+    if(real) real.sortOrder=i;
+  });
+  saveData();
+  renderTransactionsPage();
+}
+function txnDragEnd(e){
+  e.currentTarget.style.opacity='';
+  txnDragSrcId=null;
+  txnDragSrcDate=null;
 }
 // ══ BUDGET MONTH STATE ══════════════════════════════════════════════════════
 let budgetSelectedMonth = (() => {
