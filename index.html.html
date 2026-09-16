@@ -305,6 +305,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .txn-cat{font-size:10.5px;color:var(--text2)}
 .txn-amount{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;text-align:right}
 .txn-date{font-size:10px;color:var(--text3);margin-top:2px;text-align:right}
+.txn-balance-after{font-size:10px;color:var(--text3);margin-top:2px;text-align:right;white-space:nowrap}
+.txn-date-divider{display:flex;align-items:center;gap:10px;padding:2px 2px}
+.txn-date-divider-label{font-size:11.5px;font-weight:700;color:var(--text2);letter-spacing:0.2px;white-space:nowrap}
+.txn-date-divider-line{flex:1;height:1px;background:var(--border)}
 .txn-delete{opacity:0;font-size:12px;cursor:pointer;color:var(--accent5);transition:opacity 0.15s;padding:2px 6px;border-radius:4px;background:none;border:none;font-family:var(--font-ui)}
 .txn-item:hover .txn-delete{opacity:1}
 @media(max-width:768px){.txn-delete{opacity:0.6}}
@@ -2354,6 +2358,68 @@ let goalDragSrcIdx=null;
 const fmt=n=>'৳'+Math.abs(Math.round(n)).toLocaleString('en-IN');
 const fmtFull=n=>'৳'+Math.round(n).toLocaleString('en-IN');
 const today=()=>new Date().toISOString().split('T')[0];
+// ── Date-group divider label: "Today" / "Yesterday" / "Weekday, D Month YYYY" ──
+const TXN_DIVIDER_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const TXN_DIVIDER_WEEKDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function txnDateDividerLabel(dateStr){
+  if(!dateStr)return'Unknown Date';
+  if(dateStr===today())return'Today';
+  const yestD=new Date();yestD.setDate(yestD.getDate()-1);
+  if(dateStr===yestD.toISOString().split('T')[0])return'Yesterday';
+  const d=new Date(dateStr+'T00:00:00');
+  if(isNaN(d))return dateStr;
+  return`${TXN_DIVIDER_WEEKDAYS[d.getDay()]}, ${d.getDate()} ${TXN_DIVIDER_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+// ── Per-transaction "balance after" snapshots ──────────────────────────────
+// Account balances are only ever kept as a single running total on the
+// account itself (DATA.accounts[i].balance), updated in place whenever a
+// transaction is added/edited/deleted — there's no stored history. To show
+// what an account's balance *was* right after some past transaction, we
+// replay every entry that ever touched that account in true chronological
+// order and remember the running total at each step. Group transactions
+// (t.splits) can move money in/out of more than one account at once, so
+// each split is walked individually to keep every account's running total
+// correct — but the "balance after" note itself is only ever shown on
+// single-account rows (see renderTransactionsPage), never on the group row.
+function computeTxnBalanceSnapshots(){
+  const sign={income:1,payable:1,receivable:-1,expense:-1};
+  const entries=[];
+  (DATA.transactions||[]).forEach(t=>{
+    if(t.type==='transfer'){
+      if(t.fromAccount)entries.push({txnId:t.id,accountId:t.fromAccount,effect:-t.amount,date:t.date,time:t.time,sortOrder:t.sortOrder});
+      if(t.toAccount)entries.push({txnId:t.id,accountId:t.toAccount,effect:t.amount,date:t.date,time:t.time,sortOrder:t.sortOrder});
+    } else if(t.splits&&t.splits.length>0){
+      const s=sign[t.type]||0;
+      if(s)t.splits.forEach(sp=>{
+        const accId=sp.account||t.account||'cash';
+        entries.push({txnId:t.id,accountId:accId,effect:s*sp.amount,date:t.date,time:t.time,sortOrder:t.sortOrder});
+      });
+    } else if(t.account){
+      const s=sign[t.type]||0;
+      if(s)entries.push({txnId:t.id,accountId:t.account,effect:s*t.amount,date:t.date,time:t.time,sortOrder:t.sortOrder});
+    }
+  });
+  entries.sort((a,b)=>{
+    const dd=new Date(a.date)-new Date(b.date);
+    if(dd!==0)return dd;
+    const aHasTime=!!a.time,bHasTime=!!b.time;
+    if(aHasTime&&bHasTime)return a.time.localeCompare(b.time);
+    if(aHasTime&&!bHasTime)return -1;
+    if(!aHasTime&&bHasTime)return 1;
+    return(typeof a.sortOrder==='number'?a.sortOrder:0)-(typeof b.sortOrder==='number'?b.sortOrder:0);
+  });
+  const netByAccount={};
+  entries.forEach(e=>{netByAccount[e.accountId]=(netByAccount[e.accountId]||0)+e.effect});
+  const running={};
+  (DATA.accounts||[]).forEach(a=>{running[a.id]=a.balance-(netByAccount[a.id]||0)});
+  const snapshots={};
+  entries.forEach(e=>{
+    if(!(e.accountId in running))running[e.accountId]=0;
+    running[e.accountId]+=e.effect;
+    snapshots[e.txnId+'::'+e.accountId]=running[e.accountId];
+  });
+  return snapshots;
+}
 const uid=()=>Date.now()+Math.floor(Math.random()*9999);
 // Manual drag-order for transactions that have no time set, scoped per date
 function nextTxnSortOrder(date){
@@ -3639,7 +3705,9 @@ function renderTransactionsPage(){
     return (typeof a.sortOrder==='number'?a.sortOrder:0)-(typeof b.sortOrder==='number'?b.sortOrder:0);
   });
   const el=document.getElementById('txn-full-list');if(!el)return;
-  el.innerHTML=txns.length?txns.map(t=>{
+  const balSnapshots=computeTxnBalanceSnapshots();
+  let lastDividerDate=null;
+  el.innerHTML=txns.length?txns.map((t,idx)=>{
     const isTransfer=t.type==='transfer';
     const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':isTransfer?'#8b5cf6':'#ef4444';
     const sign=t.type==='income'?'+':t.type==='payable'?'🔴':t.type==='receivable'?'🔵':isTransfer?'🔁':'-';
@@ -3666,6 +3734,25 @@ function renderTransactionsPage(){
     const inGroupBadge=t.groupParentId?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:rgba(var(--accent2-rgb),0.14);color:var(--accent2);font-weight:600;margin-left:5px">🔗 In group</span>`:'';
     const subRows=isGroup?`<div id="grp-${t.id}" style="display:none;padding:6px 0 2px 44px;border-top:1px solid var(--border);">`+t.splits.map(s=>{const accName=s.account?(DATA.accounts.find(a=>a.id===s.account)||{name:s.account}).name:'Cash';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:12px;"><span style="color:var(--text2)">${s.emoji||getCatEmoji(s.cat)} ${s.desc||s.cat} <span style="color:var(--text3);font-size:10px">· ${s.cat}</span></span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;padding:1px 6px;border-radius:6px;background:var(--bg4);color:var(--text2)">${accName}</span><span style="font-family:JetBrains Mono;font-weight:600;color:${color}">-${fmt(s.amount)}</span></span></div>`;}).join('')+`</div>`:'';
     const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleGrp('${t.id}',this)">▼ Show</button>`:'';
+    // "Balance after" — the affected account's running balance right after this
+    // transaction. Skipped for group transactions since a group can move money
+    // in/out of several different accounts at once, so a single number here
+    // would be misleading (each sub-item's own account is already shown above).
+    let balanceAfterLine='';
+    if(!isGroup){
+      if(isTransfer){
+        const fromBal=balSnapshots[t.id+'::'+t.fromAccount];
+        const toBal=balSnapshots[t.id+'::'+t.toAccount];
+        if(fromBal!==undefined&&toBal!==undefined)
+          balanceAfterLine=`<div class="txn-balance-after">${t.fromName||'—'} ${fmtFull(fromBal)} · ${t.toName||'—'} ${fmtFull(toBal)}</div>`;
+      } else if(t.account){
+        const bal=balSnapshots[t.id+'::'+t.account];
+        if(bal!==undefined){
+          const accName=(DATA.accounts.find(a=>a.id===t.account)||{}).name||t.account;
+          balanceAfterLine=`<div class="txn-balance-after">${accName}: ${fmtFull(bal)}</div>`;
+        }
+      }
+    }
     // Manual drag-and-drop reordering only applies to untimed transactions, only while sorted by date,
     // and is always confined to that transaction's own date (see txnDrop).
     const canDrag=isDateSort&&!t.time;
@@ -3678,7 +3765,14 @@ function renderTransactionsPage(){
     // on touch. Transfers can't be "customized" via that form, so they get the
     // lightweight actions popup (which only shows Remove for transfers) instead.
     const rowOnclick=`onclick="if(!event.target.closest('button,.txn-drag-handle'))openModal('${isTransfer?'txn-actions':'add-txn'}',${JSON.stringify(t).replace(/"/g,'&quot;')})"`;
-    return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item" ${rowOnclick}><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}</div></div>${subRows}</div>`;
+    // Date-group divider: only meaningful while the list is sorted by date (otherwise
+    // rows for the same date aren't contiguous, so a divider per date would be noise).
+    let divider='';
+    if(isDateSort&&t.date!==lastDividerDate){
+      lastDividerDate=t.date;
+      divider=`<div class="txn-date-divider" style="margin-top:${idx===0?'0':'10px'}"><span class="txn-date-divider-label">${txnDateDividerLabel(t.date)}</span><span class="txn-date-divider-line"></span></div>`;
+    }
+    return`${divider}<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item" ${rowOnclick}><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div>${balanceAfterLine}</div>${payBtn}</div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
   initTxnListDnD();
