@@ -318,36 +318,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .txn-full-list{display:flex;flex-direction:column;gap:10px}
 .txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);transition:background 0.15s,border-color 0.15s;gap:8px;min-width:0}
 .txn-full-item:hover{background:var(--bg3);border-color:var(--border2)}
-.txn-full-item.txn-clickable{cursor:pointer}
-.txn-full-item.txn-clickable:active{transform:scale(0.997)}
+.txn-actions{display:flex;align-items:center;gap:5px;flex-shrink:0;opacity:0;transform:translateX(6px);transition:opacity 0.2s ease,transform 0.2s ease;pointer-events:none}
+.txn-full-item:hover .txn-actions{opacity:1;transform:translateX(0);pointer-events:auto}
 .txn-icon-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all 0.15s}
 .txn-icon-btn svg{width:14px;height:14px}
 .txn-icon-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border3);transform:translateY(-1px)}
 .txn-icon-btn.danger:hover{background:#ef444420;color:#ef4444;border-color:#ef444450}
-
-/* ── Transaction action popup (opens on row click: Edit / Delete) ── */
-.txn-action-overlay{display:none;position:fixed;inset:0;z-index:260;background:rgba(var(--shadow-color),0.4);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-.txn-action-overlay.open{display:block}
-.txn-action-sheet{position:fixed;left:0;right:0;bottom:0;background:var(--glass-modal);border:1px solid var(--glass-border);border-bottom:none;border-radius:20px 20px 0 0;padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px));backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);box-shadow:0 -8px 40px -8px rgba(var(--shadow-color),0.45);transform:translateY(100%);transition:transform 0.25s var(--ease-out);z-index:261}
-.txn-action-overlay.open .txn-action-sheet{transform:translateY(0)}
-.txn-action-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--border3);margin:2px auto 10px}
-.txn-action-sheet-title{font-size:12px;color:var(--text2);padding:0 6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid var(--border);margin-bottom:6px}
-.txn-action-item{display:flex;align-items:center;gap:12px;width:100%;padding:13px 10px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-ui);font-size:14px;font-weight:500;cursor:pointer;transition:background 0.15s;text-align:left}
-.txn-action-item:hover{background:var(--bg3)}
-.txn-action-item.danger{color:#ef4444}
-.txn-action-item.danger:hover{background:#ef444414}
-.txn-action-item svg{width:18px;height:18px;flex-shrink:0}
-.txn-action-item.cancel{color:var(--text2);justify-content:center;margin-top:4px;padding:12px 10px}
-/* Desktop: render as a small anchored dropdown card near the click point instead of a bottom sheet */
-@media(min-width:769px){
-  .txn-action-overlay{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-  .txn-action-sheet{position:absolute;left:auto;right:auto;bottom:auto;width:220px;border-radius:var(--radius-md);border:1px solid var(--glass-border);padding:6px;transform:translateY(-6px) scale(0.97);opacity:0;transition:transform 0.16s var(--ease-out),opacity 0.16s var(--ease-out);box-shadow:0 16px 40px -10px rgba(var(--shadow-color),0.5),0 1px 0 0 rgba(255,255,255,0.06) inset}
-  .txn-action-overlay.open .txn-action-sheet{transform:translateY(0) scale(1);opacity:1}
-  .txn-action-sheet-handle{display:none}
-  .txn-action-sheet-title{font-size:11px;padding:6px 8px 8px}
-  .txn-action-item{padding:9px 8px;font-size:13px}
-  .txn-action-item.cancel{display:none}
-}
+@media(max-width:768px){.txn-actions{opacity:1;transform:none;pointer-events:auto}}
 .txn-summary-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .txn-summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 16px;flex:1;min-width:130px}
 .txn-summary-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
@@ -2304,7 +2281,7 @@ function openModal(id,data=null){
 }
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));if(typeof closeTxnActionSheet==='function')closeTxnActionSheet();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
 let txnType='expense',editTxnId=null,isGroupMode=false,linkedExistingIds=new Set();
 function prepTxnModal(data){
   editTxnId=data?data.id:null;
@@ -3413,13 +3390,13 @@ function renderTransactionsPage(){
     }
     const personInfo=isTransfer?`<span style="color:#8b5cf6;font-size:10px">${t.fromName||'—'} → ${t.toName||'—'}</span> · `:isLR&&t.person?`<span style="color:var(--accent);font-size:10px">👤 ${t.person}</span> · `:'';
     const payBtn=isLR&&status!=='settled'
-      ?`<button class="btn btn-sm" style="background:${t.type==='payable'?'#f59e0b20':'#06b6d420'};color:${t.type==='payable'?'#f59e0b':'#06b6d4'};border:1px solid ${t.type==='payable'?'#f59e0b40':'#06b6d440'};font-size:10px" onclick="event.stopPropagation();openModal('payoff',${JSON.stringify(t).replace(/"/g,'&quot;')})">${t.type==='payable'?'💳 Pay Back':'💰 Pay Off'}</button>`
+      ?`<button class="btn btn-sm" style="background:${t.type==='payable'?'#f59e0b20':'#06b6d420'};color:${t.type==='payable'?'#f59e0b':'#06b6d4'};border:1px solid ${t.type==='payable'?'#f59e0b40':'#06b6d440'};font-size:10px" onclick="openModal('payoff',${JSON.stringify(t).replace(/"/g,'&quot;')})">${t.type==='payable'?'💳 Pay Back':'💰 Pay Off'}</button>`
       :'';
     const isGroup=t.splits&&t.splits.length>0;
     const groupBadge=isGroup?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:rgba(var(--accent-rgb),0.14);color:var(--accent);font-weight:600;margin-left:5px">📦 ${t.splits.length} items</span>`:'';
     const inGroupBadge=t.groupParentId?`<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:rgba(var(--accent2-rgb),0.14);color:var(--accent2);font-weight:600;margin-left:5px">🔗 In group</span>`:'';
     const subRows=isGroup?`<div id="grp-${t.id}" style="display:none;padding:6px 0 2px 44px;border-top:1px solid var(--border);">`+t.splits.map(s=>{const accName=s.account?(DATA.accounts.find(a=>a.id===s.account)||{name:s.account}).name:'Cash';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:12px;"><span style="color:var(--text2)">${s.emoji||getCatEmoji(s.cat)} ${s.desc||s.cat} <span style="color:var(--text3);font-size:10px">· ${s.cat}</span></span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;padding:1px 6px;border-radius:6px;background:var(--bg4);color:var(--text2)">${accName}</span><span style="font-family:JetBrains Mono;font-weight:600;color:${color}">-${fmt(s.amount)}</span></span></div>`;}).join('')+`</div>`:'';
-    const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();toggleGrp('${t.id}',this)">▼ Show</button>`:'';
+    const expandBtn=isGroup?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleGrp('${t.id}',this)">▼ Show</button>`:'';
     // Manual drag-and-drop reordering only applies to untimed transactions, only while sorted by date,
     // and is always confined to that transaction's own date (see txnDrop).
     const canDrag=isDateSort&&!t.time;
@@ -3427,14 +3404,8 @@ function renderTransactionsPage(){
     const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragend="txnDragEnd(event)"`:`data-txn-date="${t.date}"`;
     const rowClass='txn-row-wrap'+(canDrag?' txn-draggable':'');
     const dragHandle=canDrag?`<span class="txn-drag-handle" title="Drag to reorder within this date">⠿⠿</span>`:'';
-    // Row click opens a popup (bottom sheet on mobile, small anchored dropdown on desktop)
-    // with Edit/Delete — replaces the old always-visible icon buttons. Transfers have no edit
-    // option, so the row is only made clickable when there's at least one action available.
-    const rowIsActionable=!isTransfer;
-    const txnDataAttr=`data-txn-id="${t.id}"`;
-    const rowOpenAttr=rowIsActionable?` onclick="openTxnActionSheet(event,${t.id})"`:'';
-    const rowClickableClass=rowIsActionable?' txn-clickable':'';
-    return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item${rowClickableClass}" ${txnDataAttr}${rowOpenAttr}><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}</div></div>${subRows}</div>`;
+    const editBtn=isTransfer?'':`<button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>`;
+    return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions">${editBtn}<button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
   initTxnListDnD();
@@ -4719,58 +4690,6 @@ function calcGroupTotal(){
   document.querySelectorAll('.group-amt').forEach(inp=>{total+=parseFloat(inp.value)||0;});
   document.getElementById('group-total-display').textContent=fmt(total);
   document.getElementById('txn-amount').value=total;
-}
-
-// ── Transaction row action popup (Edit / Delete) ───────────────────────────
-// Replaces the old always-visible edit/delete icons on each transaction row.
-// Tapping/clicking a row opens this: a bottom sheet on mobile, a small
-// anchored dropdown near the click point on desktop/laptop.
-function closeTxnActionSheet(){
-  const ov=document.getElementById('txn-action-overlay');
-  if(!ov)return;
-  ov.classList.remove('open');
-  setTimeout(()=>{ if(!ov.classList.contains('open')) ov.innerHTML=''; },220);
-}
-
-function openTxnActionSheet(evt,txnId){
-  if(evt)evt.stopPropagation();
-  const t=DATA.transactions.find(x=>x.id==txnId);
-  if(!t)return;
-  const isTransfer=t.type==='transfer';
-
-  let ov=document.getElementById('txn-action-overlay');
-  if(!ov){
-    ov=document.createElement('div');
-    ov.id='txn-action-overlay';
-    ov.className='txn-action-overlay';
-    ov.addEventListener('click',e=>{ if(e.target===ov) closeTxnActionSheet(); });
-    document.body.appendChild(ov);
-  }
-
-  const editRow=isTransfer?'':`<button class="txn-action-item" onclick="closeTxnActionSheet();openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Edit / কাস্টমাইজ করুন</span></button>`;
-  const deleteRow=`<button class="txn-action-item danger" onclick="closeTxnActionSheet();deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Delete / মুছে ফেলুন</span></button>`;
-
-  ov.innerHTML=`<div class="txn-action-sheet" id="txn-action-sheet-box"><div class="txn-action-sheet-handle"></div><div class="txn-action-sheet-title">${t.emoji||'💸'} ${t.desc}</div>${editRow}${deleteRow}<button class="txn-action-item cancel" onclick="closeTxnActionSheet()">Cancel</button></div>`;
-  ov.classList.add('open');
-
-  // On desktop, anchor the small dropdown near where the row was clicked.
-  // On mobile it's a fixed bottom sheet (positioned purely by CSS), so skip this.
-  if(window.innerWidth>768&&evt){
-    const box=document.getElementById('txn-action-sheet-box');
-    const rowEl=evt.currentTarget;
-    const rect=rowEl?rowEl.getBoundingClientRect():{left:evt.clientX,top:evt.clientY,right:evt.clientX,bottom:evt.clientY};
-    const sheetW=220;
-    let left=Math.min(rect.right-sheetW,window.innerWidth-sheetW-16);
-    left=Math.max(16,left);
-    let top=rect.bottom+6;
-    // Flip above the row if there isn't enough room below the viewport
-    const estHeight=isTransfer?130:170;
-    if(top+estHeight>window.innerHeight-12){
-      top=Math.max(12,rect.top-estHeight-6);
-    }
-    box.style.left=left+'px';
-    box.style.top=top+'px';
-  }
 }
 
 function toggleGrp(id,btn){
