@@ -252,6 +252,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .bn-fab{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;margin-top:-24px;border-radius:50%;border:3px solid var(--bg2);background:linear-gradient(150deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;box-shadow:0 8px 20px -6px rgba(var(--accent-rgb),0.65),0 2px 6px rgba(0,0,0,0.3);transition:transform 0.16s var(--ease-spring)}
 .bn-fab svg{width:22px;height:22px}
 .bn-fab:active{transform:scale(0.9)}
+.bn-fab-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.bn-fab-menu{position:absolute;top:auto;right:auto;bottom:calc(100% + 14px);left:50%;width:200px;transform:translateX(-50%) translateY(6px)}
+.bn-fab-wrap.open .bn-fab-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 .header{padding:20px 28px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);display:flex;justify-content:space-between;align-items:center;gap:12px}
 .page-title{font-size:17px;font-weight:700;letter-spacing:-0.3px}
 .page-sub{font-size:11px;color:var(--text2);margin-top:2px}
@@ -1230,9 +1233,21 @@ setTimeout(function(){
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M8 12h8M8 16h5"/></svg>
     <span>Txns</span>
   </button>
-  <button class="bn-fab" onclick="openModal('add-txn')" aria-label="Add Transaction">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-  </button>
+  <div class="bn-fab-wrap" id="bn-fab-wrap">
+    <button class="bn-fab" onclick="toggleBnFabMenu(event)" aria-label="Add Transaction" aria-haspopup="true">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+    </button>
+    <div class="profile-dropdown bn-fab-menu" id="bn-fab-menu">
+      <div class="profile-dropdown-item" onclick="closeBnFabMenu();openModal('add-txn')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        New Transaction
+      </div>
+      <div class="profile-dropdown-item" onclick="closeBnFabMenu();openModal('transfer')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M7 3l4 4-4 4M3 8h14a3 3 0 013 3v2M17 21l-4-4 4-4M21 16H7a3 3 0 01-3-3v-2"/></svg>
+        Balance Transfer
+      </div>
+    </div>
+  </div>
   <button class="bn-item" data-page="accounts" aria-label="Accounts">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke-width="1.5"/></svg>
     <span>Accounts</span>
@@ -3322,6 +3337,8 @@ document.addEventListener('click',(e)=>{
   if(menu && !menu.contains(e.target)) menu.classList.remove('open');
   const addTxnMenu=document.getElementById('add-txn-switcher');
   if(addTxnMenu && !addTxnMenu.contains(e.target)) addTxnMenu.classList.remove('open');
+  const bnFabMenu=document.getElementById('bn-fab-wrap');
+  if(bnFabMenu && !bnFabMenu.contains(e.target)) bnFabMenu.classList.remove('open');
 });
 (function initProfileMenuHover(){
   const menu=document.getElementById('profile-menu');
@@ -3339,6 +3356,16 @@ function toggleAddTxnMenu(e){
 }
 function closeAddTxnMenu(){
   document.getElementById('add-txn-switcher').classList.remove('open');
+}
+// Mobile bottom-nav "+" — same two options as the desktop header button
+// (New Transaction / Balance Transfer), but tap-to-open only since touch
+// devices don't have hover.
+function toggleBnFabMenu(e){
+  if(e)e.stopPropagation();
+  document.getElementById('bn-fab-wrap').classList.toggle('open');
+}
+function closeBnFabMenu(){
+  document.getElementById('bn-fab-wrap').classList.remove('open');
 }
 (function initAddTxnMenuHover(){
   const menu=document.getElementById('add-txn-switcher');
