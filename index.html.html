@@ -1045,7 +1045,14 @@ body::before{display:none} /* superseded by .bg-wallpaper element */
    the icon-only treatment.
    ══════════════════════════════════════════════════════════════════ */
 @media(min-width:769px){
-  html{--sidebar-w:78px;--sidebar-w-expanded:250px}
+  /* NOTE: must be `:root`, not `html` — the base :root{--sidebar-w:250px}
+     rule up top has higher specificity (0,1,0) than a plain `html{...}`
+     type-selector rule (0,0,1), so a lower-specificity `html{...}` here
+     never actually wins and the collapsed rail silently stayed 250px
+     wide (icons floating in a too-wide rail with a dead gap next to
+     them). Matching the selector's specificity lets normal source-order
+     cascade apply, so this later rule correctly overrides the default. */
+  :root{--sidebar-w:78px;--sidebar-w-expanded:250px}
   html[data-sidebar="expanded"]{--sidebar-w:var(--sidebar-w-expanded)}
 
   .sidebar{transition:width 0.45s var(--ease-spring);align-items:center;padding-top:4px;overflow:visible}
