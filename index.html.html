@@ -14,7 +14,7 @@
 })();
 </script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinVault – Money Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -226,6 +226,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .theme-swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.4)}
 .hamburger{display:none;position:fixed;top:14px;left:14px;z-index:60;background:var(--glass-faint);border:1px solid var(--glass-border);border-radius:50%;padding:8px;cursor:pointer;color:var(--text);align-items:center;justify-content:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(var(--shadow-color),0.5);z-index:40;backdrop-filter:blur(2px)}
+
+/* ══════════════════════════════════════════════════════════════════
+   📱 BOTTOM NAV — native-app-style tab bar for phones. Hidden by
+   default; only shown under the 768px breakpoint below, where it
+   fully replaces the hamburger/top-left sidebar trigger. The center
+   item is a raised FAB for the primary "Add" action; the last item
+   ("More") opens the existing sidebar drawer via toggleSidebar().
+   ══════════════════════════════════════════════════════════════════ */
+.bottom-nav{display:none}
+.bn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1;min-width:0;background:none;border:none;color:var(--text2);font-family:var(--font-ui);font-size:10px;font-weight:600;letter-spacing:0.1px;padding:6px 2px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color 0.18s,transform 0.16s var(--ease-spring)}
+.bn-item svg{width:21px;height:21px;transition:transform 0.16s var(--ease-spring)}
+.bn-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.bn-item.active{color:var(--accent)}
+.bn-item.active svg{filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),0.55))}
+.bn-item:active{transform:scale(0.92)}
+.bn-fab{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;margin-top:-24px;border-radius:50%;border:3px solid var(--bg2);background:linear-gradient(150deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;box-shadow:0 8px 20px -6px rgba(var(--accent-rgb),0.65),0 2px 6px rgba(0,0,0,0.3);transition:transform 0.16s var(--ease-spring)}
+.bn-fab svg{width:22px;height:22px}
+.bn-fab:active{transform:scale(0.9)}
 .header{padding:20px 28px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);display:flex;justify-content:space-between;align-items:center;gap:12px}
 .page-title{font-size:17px;font-weight:700;letter-spacing:-0.3px}
 .page-sub{font-size:11px;color:var(--text2);margin-top:2px}
@@ -384,16 +402,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
   .sidebar{transform:translateX(-100%) translateZ(0);width:240px;max-width:82vw;box-shadow:none}
   .sidebar.open{transform:translateX(0) translateZ(0);box-shadow:12px 0 40px #00000060}
   .sidebar-overlay.open{display:block}
-  .hamburger{display:flex;width:38px;height:38px;padding:0;top:max(14px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left))}
+  /* Bottom tab bar takes over on phones — hamburger is no longer needed
+     since "More" in the tab bar opens the same sidebar drawer. */
+  .hamburger{display:none!important}
   .main{margin-left:0}
-  .header{padding:14px 16px 14px 56px}
-  .content{padding:16px}
+  .header{padding:14px 16px}
+  .content{padding:16px;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .goals-grid,.goals-page-grid{grid-template-columns:1fr 1fr}
   .modal{padding:26px 20px 20px}
   .nav-item{padding:11px 14px;min-height:44px}
   .btn,.type-btn,.tab,.account-tab{min-height:40px}
   .form-input{font-size:16px}
+  .bottom-nav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;align-items:center;justify-content:space-around;padding:4px 4px calc(4px + env(safe-area-inset-bottom));background:var(--glass-header);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-top:1px solid var(--glass-border)}
 }
 @media(max-width:480px){
   .kpi-grid{grid-template-columns:1fr 1fr}
@@ -407,7 +428,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
   .reports-grid{grid-template-columns:1fr}
   .goals-page-grid{grid-template-columns:1fr}
   /* Header */
-  .header{padding:10px 12px 10px 52px;gap:8px}
+  .header{padding:10px 12px;gap:8px}
   .page-title{font-size:14px}
   .page-sub{font-size:10px}
   .btn{padding:7px 12px;font-size:11.5px}
@@ -1155,6 +1176,27 @@ setTimeout(function(){
   <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
 </button>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bn-item active" data-page="dashboard" aria-label="Home">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 11.5L12 4l9 7.5M5 10v9a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 011-1h0a1 1 0 011 1v4a1 1 0 001 1h4a1 1 0 001-1v-9"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="bn-item" data-page="transactions" aria-label="Transactions">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M8 12h8M8 16h5"/></svg>
+    <span>Txns</span>
+  </button>
+  <button class="bn-fab" onclick="openModal('add-txn')" aria-label="Add Transaction">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+  </button>
+  <button class="bn-item" data-page="accounts" aria-label="Accounts">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke-width="1.5"/></svg>
+    <span>Accounts</span>
+  </button>
+  <button class="bn-item" id="bn-more" onclick="toggleSidebar()" aria-label="More">
+    <svg fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    <span>More</span>
+  </button>
+</nav>
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebarRail()" aria-label="Expand or collapse sidebar" title="Expand sidebar">
@@ -2911,10 +2953,14 @@ async function deleteMyAccount(){
 document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
   item.addEventListener('click',()=>{switchPage(item.dataset.page);closeSidebar()});
 });
+// Bottom tab bar (phones only) mirrors the sidebar's data-page items —
+// tapping a tab switches pages the same way and closes the drawer if open.
+document.querySelectorAll('.bn-item[data-page]').forEach(item=>{
+  item.addEventListener('click',()=>{switchPage(item.dataset.page);closeSidebar()});
+});
 function switchPage(page){
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const nav=document.querySelector('.nav-item[data-page="'+page+'"]');
-  if(nav)nav.classList.add('active');
+  document.querySelectorAll('.nav-item,.bn-item[data-page]').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('[data-page="'+page+'"]').forEach(n=>n.classList.add('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
@@ -2925,8 +2971,18 @@ function switchPage(page){
   renderPageContent(page);
   if(typeof forceThemeColors==='function')forceThemeColors();
 }
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open')}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open')}
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+  const more=document.getElementById('bn-more');
+  if(more)more.classList.toggle('active',document.getElementById('sidebar').classList.contains('open'));
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  const more=document.getElementById('bn-more');
+  if(more)more.classList.remove('active');
+}
 // Desktop icon-rail sidebar: collapsed (circle icons only) <-> expanded (labels).
 // Mirrors the data-theme pattern so the choice persists with no flash on reload.
 function toggleSidebarRail(){
