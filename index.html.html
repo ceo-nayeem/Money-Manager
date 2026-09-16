@@ -373,6 +373,39 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .modal-close{position:absolute;top:14px;right:14px;background:var(--glass-faint);border:1px solid var(--glass-border);color:var(--text2);font-size:14px;cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .modal-close:hover{color:var(--text)}
 .modal-actions{display:flex;gap:8px;margin-top:18px}
+/* Custom date & time picker — themed (light/dark + color theme aware) replacement for native pickers */
+.picker-field{position:relative;cursor:pointer}
+.picker-field input{cursor:pointer;padding-right:36px}
+.picker-field input::placeholder{color:var(--text3)}
+.picker-field .picker-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;opacity:0.7}
+.dp-panel,.tp-panel{max-width:320px;width:100%;padding:24px 18px 18px}
+.dp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dp-nav{width:30px;height:30px;flex-shrink:0;border-radius:50%;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;font-family:var(--font-ui);transition:all 0.15s}
+.dp-nav:hover{background:var(--bg4);color:var(--text)}
+.dp-month-label{font-size:13.5px;font-weight:700;cursor:pointer;padding:5px 12px;border-radius:9px;transition:background 0.15s;user-select:none}
+.dp-month-label:hover{background:var(--glass-faint)}
+.dp-quickjump{display:none;gap:8px;margin-bottom:12px}
+.dp-quickjump.open{display:flex}
+.dp-quickjump select{flex:1;font-size:12px;padding:7px 10px}
+.dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.4px;margin-bottom:4px}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--text);font-family:var(--font-ui);font-size:12.5px;border-radius:9px;cursor:pointer;transition:all 0.15s}
+.dp-cell:hover{background:var(--glass-faint)}
+.dp-cell.dp-empty{cursor:default;pointer-events:none}
+.dp-cell.dp-today{color:var(--accent);font-weight:700}
+.dp-cell.dp-selected{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(var(--accent-rgb),0.4)}
+.dp-footer{display:flex;justify-content:center;margin-top:14px}
+.tp-preview{text-align:center;font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;margin-bottom:14px;letter-spacing:1px;color:var(--text)}
+.tp-cols{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
+.tp-col{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;width:64px;scroll-behavior:smooth;padding:72px 0}
+.tp-col::-webkit-scrollbar{width:4px}
+.tp-col::-webkit-scrollbar-thumb{background:var(--border3);border-radius:4px}
+.tp-item{border:none;background:none;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:15px;padding:8px 0;border-radius:9px;cursor:pointer;text-align:center;transition:all 0.15s;flex-shrink:0}
+.tp-item:hover{background:var(--glass-faint);color:var(--text)}
+.tp-item.tp-sel{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(var(--accent-rgb),0.4)}
+.tp-sep{font-size:20px;font-weight:700;color:var(--text2)}
+.tp-footer{display:flex;gap:8px;justify-content:center}
+@media(max-width:380px){.dp-panel,.tp-panel{padding:20px 14px 16px}.tp-col{width:56px}}
 .chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg4);border:1px solid var(--border)}
 .empty{text-align:center;padding:40px 20px;color:var(--text2)}
 .empty-icon{font-size:32px;margin-bottom:10px}
@@ -1601,8 +1634,8 @@ setTimeout(function(){
 
     <div class="form-group"><label class="form-label">Description / Note</label><input class="form-input" type="text" id="txn-desc" placeholder="e.g. Lunch at restaurant"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="txn-date"></div>
-      <div class="form-group"><label class="form-label">Time <span style="color:var(--text3);text-transform:none;font-weight:400">(optional)</span></label><input class="form-input" type="time" id="txn-time"></div>
+      <div class="form-group"><label class="form-label">Date</label><div class="picker-field" onclick="openDatePicker('txn-date')"><input class="form-input" type="text" id="txn-date" readonly placeholder="Select date"><span class="picker-icon">📅</span></div></div>
+      <div class="form-group"><label class="form-label">Time <span style="color:var(--text3);text-transform:none;font-weight:400">(optional)</span></label><div class="picker-field" onclick="openTimePicker('txn-time')"><input class="form-input" type="text" id="txn-time" readonly placeholder="--:--"><span class="picker-icon">🕐</span></div></div>
     </div>
     <div style="font-size:10px;color:var(--text2);margin:-8px 0 12px 2px">সময় দিলে ঐ তারিখের মধ্যে transaction গুলো সময় অনুযায়ী সাজানো হবে। সময় না দিলে drag করে নিজের মতো সাজাতে পারবেন।</div>
     <input type="hidden" id="txn-edit-id">
@@ -1819,11 +1852,11 @@ setTimeout(function(){
     </div>
     <div class="form-group">
       <label class="form-label">Date</label>
-      <input class="form-input" type="date" id="transfer-date">
+      <div class="picker-field" onclick="openDatePicker('transfer-date')"><input class="form-input" type="text" id="transfer-date" readonly placeholder="Select date"><span class="picker-icon">📅</span></div>
     </div>
     <div class="form-group">
       <label class="form-label">সময় (Time) — অপশনাল</label>
-      <input class="form-input" type="time" id="transfer-time">
+      <div class="picker-field" onclick="openTimePicker('transfer-time')"><input class="form-input" type="text" id="transfer-time" readonly placeholder="--:--"><span class="picker-icon">🕐</span></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('transfer')">Cancel</button>
@@ -1852,7 +1885,7 @@ setTimeout(function(){
     </div>
     <div class="form-group">
       <label class="form-label">Date</label>
-      <input class="form-input" type="date" id="payoff-date">
+      <div class="picker-field" onclick="openDatePicker('payoff-date')"><input class="form-input" type="text" id="payoff-date" readonly placeholder="Select date"><span class="picker-icon">📅</span></div>
     </div>
     <input type="hidden" id="payoff-txn-id">
     <div class="modal-actions">
@@ -1877,6 +1910,46 @@ setTimeout(function(){
       <button class="btn btn-primary" id="txn-actions-edit-btn" style="width:100%;padding:11px;font-size:13px" onclick="txnActionsCustomize()">✏️ Customize Transaction</button>
       <button class="btn" style="width:100%;padding:11px;font-size:13px;background:#ef444418;color:#ef4444;border:1px solid #ef444440" onclick="txnActionsDelete()">🗑️ Remove Transaction</button>
       <button class="btn btn-ghost" style="width:100%;padding:11px;font-size:13px" onclick="closeModal('txn-actions')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Date Picker (replaces native <input type="date">, follows the active theme) -->
+<div class="modal-overlay picker-overlay" id="dp-overlay">
+  <div class="modal dp-panel">
+    <button class="modal-close" onclick="closeDatePicker()">✕</button>
+    <div class="dp-header">
+      <button type="button" class="dp-nav" onclick="dpChangeMonth(-1)">‹</button>
+      <div class="dp-month-label" id="dp-month-label" onclick="dpToggleQuickJump()"></div>
+      <button type="button" class="dp-nav" onclick="dpChangeMonth(1)">›</button>
+    </div>
+    <div class="dp-quickjump" id="dp-quickjump">
+      <select class="form-input" id="dp-month-select" onchange="dpQuickJumpChange()"></select>
+      <select class="form-input" id="dp-year-select" onchange="dpQuickJumpChange()"></select>
+    </div>
+    <div class="dp-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="dp-grid" id="dp-grid"></div>
+    <div class="dp-footer">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="dpSetToday()">📍 Today</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Time Picker (replaces native <input type="time">, follows the active theme) -->
+<div class="modal-overlay picker-overlay" id="tp-overlay">
+  <div class="modal tp-panel">
+    <button class="modal-close" onclick="closeTimePicker()">✕</button>
+    <div class="modal-title" style="margin-bottom:12px;text-align:center">Select Time</div>
+    <div class="tp-preview" id="tp-preview">--:--</div>
+    <div class="tp-cols">
+      <div class="tp-col" id="tp-hour-col"></div>
+      <div class="tp-sep">:</div>
+      <div class="tp-col" id="tp-min-col"></div>
+    </div>
+    <div class="tp-footer">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="tpSetNow()">🕐 Now</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="tpClear()">Clear</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="tpConfirm()">Set</button>
     </div>
   </div>
 </div>
@@ -2334,6 +2407,108 @@ function deleteTxnFromModal(){
 }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
+
+/* ===== Custom Date Picker — themed replacement for <input type="date"> ===== */
+const DP_MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let dpTargetId=null,dpViewDate=new Date(),dpSelectedDate=null;
+function openDatePicker(id){
+  dpTargetId=id;
+  const val=document.getElementById(id).value;
+  const base=val?new Date(val+'T00:00:00'):new Date();
+  dpViewDate=new Date(base.getFullYear(),base.getMonth(),1);
+  dpSelectedDate=val||null;
+  document.getElementById('dp-quickjump').classList.remove('open');
+  renderDatePicker();
+  document.getElementById('dp-overlay').classList.add('open');
+}
+function closeDatePicker(){document.getElementById('dp-overlay').classList.remove('open')}
+function dpChangeMonth(delta){
+  dpViewDate=new Date(dpViewDate.getFullYear(),dpViewDate.getMonth()+delta,1);
+  renderDatePicker();
+}
+function dpToggleQuickJump(){
+  const qj=document.getElementById('dp-quickjump');
+  if(qj.classList.contains('open')){qj.classList.remove('open');return}
+  const monthSel=document.getElementById('dp-month-select');
+  const yearSel=document.getElementById('dp-year-select');
+  monthSel.innerHTML=DP_MONTH_NAMES.map((mn,i)=>`<option value="${i}" ${i===dpViewDate.getMonth()?'selected':''}>${mn}</option>`).join('');
+  const curY=dpViewDate.getFullYear();
+  let yopts='';
+  for(let y=curY-15;y<=curY+5;y++)yopts+=`<option value="${y}" ${y===curY?'selected':''}>${y}</option>`;
+  yearSel.innerHTML=yopts;
+  qj.classList.add('open');
+}
+function dpQuickJumpChange(){
+  const m=parseInt(document.getElementById('dp-month-select').value,10);
+  const y=parseInt(document.getElementById('dp-year-select').value,10);
+  dpViewDate=new Date(y,m,1);
+  document.getElementById('dp-quickjump').classList.remove('open');
+  renderDatePicker();
+}
+function renderDatePicker(){
+  const y=dpViewDate.getFullYear(),m=dpViewDate.getMonth();
+  document.getElementById('dp-month-label').textContent=`${DP_MONTH_NAMES[m]} ${y}`;
+  const firstDay=new Date(y,m,1).getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const todayStr=today();
+  let html='';
+  for(let i=0;i<firstDay;i++)html+='<div class="dp-cell dp-empty"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls=['dp-cell'];
+    if(ds===dpSelectedDate)cls.push('dp-selected');
+    if(ds===todayStr)cls.push('dp-today');
+    html+=`<button type="button" class="${cls.join(' ')}" onclick="dpPick('${ds}')">${d}</button>`;
+  }
+  document.getElementById('dp-grid').innerHTML=html;
+}
+function dpPick(ds){
+  const el=document.getElementById(dpTargetId);
+  if(el){el.value=ds;el.dispatchEvent(new Event('change'))}
+  closeDatePicker();
+}
+function dpSetToday(){dpPick(today())}
+
+/* ===== Custom Time Picker — themed replacement for <input type="time"> ===== */
+let tpTargetId=null,tpHour=0,tpMin=0;
+function openTimePicker(id){
+  tpTargetId=id;
+  const val=document.getElementById(id).value;
+  if(val){const[h,mi]=val.split(':');tpHour=parseInt(h,10);tpMin=parseInt(mi,10)}
+  else{const now=new Date();tpHour=now.getHours();tpMin=now.getMinutes()}
+  renderTimePicker(true);
+  document.getElementById('tp-overlay').classList.add('open');
+}
+function closeTimePicker(){document.getElementById('tp-overlay').classList.remove('open')}
+function renderTimePicker(scrollToSel){
+  let hh='';
+  for(let h=0;h<24;h++)hh+=`<button type="button" class="tp-item${h===tpHour?' tp-sel':''}" onclick="tpPickHour(${h})">${String(h).padStart(2,'0')}</button>`;
+  document.getElementById('tp-hour-col').innerHTML=hh;
+  let mm='';
+  for(let mi=0;mi<60;mi++)mm+=`<button type="button" class="tp-item${mi===tpMin?' tp-sel':''}" onclick="tpPickMin(${mi})">${String(mi).padStart(2,'0')}</button>`;
+  document.getElementById('tp-min-col').innerHTML=mm;
+  document.getElementById('tp-preview').textContent=`${String(tpHour).padStart(2,'0')}:${String(tpMin).padStart(2,'0')}`;
+  if(scrollToSel)requestAnimationFrame(()=>{
+    const hEl=document.querySelector('#tp-hour-col .tp-sel');
+    if(hEl)hEl.scrollIntoView({block:'center'});
+    const mEl=document.querySelector('#tp-min-col .tp-sel');
+    if(mEl)mEl.scrollIntoView({block:'center'});
+  });
+}
+function tpPickHour(h){tpHour=h;renderTimePicker(false)}
+function tpPickMin(mi){tpMin=mi;renderTimePicker(false)}
+function tpSetNow(){const now=new Date();tpHour=now.getHours();tpMin=now.getMinutes();renderTimePicker(true)}
+function tpClear(){
+  const el=document.getElementById(tpTargetId);
+  if(el){el.value='';el.dispatchEvent(new Event('change'))}
+  closeTimePicker();
+}
+function tpConfirm(){
+  const el=document.getElementById(tpTargetId);
+  if(el){el.value=`${String(tpHour).padStart(2,'0')}:${String(tpMin).padStart(2,'0')}`;el.dispatchEvent(new Event('change'))}
+  closeTimePicker();
+}
+
 let txnType='expense',editTxnId=null,isGroupMode=false,linkedExistingIds=new Set();
 function prepTxnModal(data){
   editTxnId=data?data.id:null;
