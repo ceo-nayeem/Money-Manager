@@ -1610,6 +1610,7 @@ setTimeout(function(){
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('add-txn')">Cancel</button>
       <button class="btn btn-primary" style="flex:2" onclick="saveTransaction()">Save Transaction</button>
     </div>
+    <button type="button" id="txn-delete-btn" class="btn" style="width:100%;margin-top:10px;padding:11px;font-size:13px;background:#ef444418;color:#ef4444;border:1px solid #ef444440;display:none" onclick="deleteTxnFromModal()">🗑️ Remove Transaction</button>
   </div>
 </div>
 <div class="modal-overlay" id="modal-add-budget">
@@ -2325,6 +2326,12 @@ function txnActionsDelete(){
   closeModal('txn-actions');
   deleteTxn(data.id);
 }
+function deleteTxnFromModal(){
+  const id=editTxnId;
+  if(id==null)return;
+  closeModal('add-txn');
+  deleteTxn(id);
+}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
 let txnType='expense',editTxnId=null,isGroupMode=false,linkedExistingIds=new Set();
@@ -2332,6 +2339,7 @@ function prepTxnModal(data){
   editTxnId=data?data.id:null;
   document.getElementById('txn-modal-title').textContent=data?'Edit Transaction':'Add Transaction';
   document.getElementById('txn-edit-id').value=data?data.id:'';
+  document.getElementById('txn-delete-btn').style.display=data?'':'none';
   txnType=data?data.type:'expense';
   setType(txnType); // populates cats, account select, shows/hides fields
   document.getElementById('txn-amount').value=data?data.amount:'';
@@ -3449,9 +3457,11 @@ function renderTransactionsPage(){
     const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragend="txnDragEnd(event)"`:`data-txn-date="${t.date}"`;
     const rowClass='txn-row-wrap'+(canDrag?' txn-draggable':'');
     const dragHandle=canDrag?`<span class="txn-drag-handle" title="Drag to reorder within this date">⠿⠿</span>`:'';
-    // Clicking the row opens a popup with Customize / Remove actions, rather than
-    // showing hover-only icon buttons — keeps the row clean and works well on touch.
-    const rowOnclick=`onclick="if(!event.target.closest('button,.txn-drag-handle'))openModal('txn-actions',${JSON.stringify(t).replace(/"/g,'&quot;')})"`;
+    // Clicking the row opens the full Customize form directly (with a Remove button
+    // inside it), rather than showing hover-only icon buttons — clean, and works well
+    // on touch. Transfers can't be "customized" via that form, so they get the
+    // lightweight actions popup (which only shows Remove for transfers) instead.
+    const rowOnclick=`onclick="if(!event.target.closest('button,.txn-drag-handle'))openModal('${isTransfer?'txn-actions':'add-txn'}',${JSON.stringify(t).replace(/"/g,'&quot;')})"`;
     return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item" ${rowOnclick}><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}</div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
