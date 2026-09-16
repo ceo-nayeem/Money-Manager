@@ -214,6 +214,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .theme-menu{position:absolute;top:calc(100% + 10px);right:0;width:222px;background:var(--glass-modal);border:1px solid var(--glass-border);border-radius:var(--radius-md);box-shadow:0 12px 32px rgba(var(--shadow-color),0.35);padding:12px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all 0.16s ease;z-index:100;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%)}
 .theme-switcher.open .theme-menu{opacity:1;visibility:visible;transform:translateY(0)}
 .theme-menu-label{font-size:9.5px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:8px}
+/* Add Transaction — circular header trigger + hover dropdown (desktop only) */
+.add-txn-switcher{position:relative}
+.add-txn-trigger{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(150deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;box-shadow:0 4px 14px -4px rgba(var(--accent-rgb),0.6);transition:transform 0.16s var(--ease-spring),box-shadow 0.16s}
+.add-txn-trigger:hover{transform:scale(1.07);box-shadow:0 6px 18px -4px rgba(var(--accent-rgb),0.75)}
+.add-txn-trigger svg{width:16px;height:16px}
+.add-txn-dropdown{min-width:200px}
+.add-txn-switcher.open .add-txn-dropdown{opacity:1;visibility:visible;transform:translateY(0)}
+@media(max-width:768px){.add-txn-switcher{display:none}}
 .theme-mode-row{display:flex;gap:6px;margin-bottom:14px}
 .theme-mode-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;font-size:11.5px;font-weight:500;color:var(--text2);background:var(--glass-faint);border:1px solid var(--glass-border);border-radius:9px;cursor:pointer;transition:all 0.15s;font-family:var(--font-ui)}
 .theme-mode-btn svg{width:13px;height:13px}
@@ -1286,7 +1294,21 @@ setTimeout(function(){
       <div class="header-right">
         <span class="chip" id="header-chip1">📈 Loading...</span>
         <span class="chip" id="header-chip2">✅ Budgets OK</span>
-        <button class="btn btn-primary" onclick="openModal('add-txn')">+ Add Transaction</button>
+        <div class="add-txn-switcher" id="add-txn-switcher">
+          <button class="add-txn-trigger" id="add-txn-trigger" title="Add Transaction" aria-label="Add Transaction" aria-haspopup="true" onclick="toggleAddTxnMenu(event)">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          </button>
+          <div class="profile-dropdown add-txn-dropdown" id="add-txn-dropdown">
+            <div class="profile-dropdown-item" onclick="closeAddTxnMenu();openModal('add-txn')">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              Add New Transaction
+            </div>
+            <div class="profile-dropdown-item" onclick="closeAddTxnMenu();openModal('transfer')">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M7 3l4 4-4 4M3 8h14a3 3 0 013 3v2M17 21l-4-4 4-4M21 16H7a3 3 0 01-3-3v-2"/></svg>
+              Balance Transfer
+            </div>
+          </div>
+        </div>
         <div class="theme-switcher" id="theme-switcher">
           <button class="theme-trigger" id="theme-trigger" title="Theme" onclick="toggleThemeMenu(event)" aria-label="Change theme">
             <svg id="theme-icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="4.5" stroke-width="1.6"/><path stroke-linecap="round" stroke-width="1.6" d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
@@ -3232,9 +3254,28 @@ function closeProfileMenu(){
 document.addEventListener('click',(e)=>{
   const menu=document.getElementById('profile-menu');
   if(menu && !menu.contains(e.target)) menu.classList.remove('open');
+  const addTxnMenu=document.getElementById('add-txn-switcher');
+  if(addTxnMenu && !addTxnMenu.contains(e.target)) addTxnMenu.classList.remove('open');
 });
 (function initProfileMenuHover(){
   const menu=document.getElementById('profile-menu');
+  if(!menu) return;
+  let hoverTimeout;
+  menu.addEventListener('mouseenter',()=>{clearTimeout(hoverTimeout);menu.classList.add('open')});
+  menu.addEventListener('mouseleave',()=>{hoverTimeout=setTimeout(()=>menu.classList.remove('open'),150)});
+})();
+// Add Transaction header trigger — click to toggle, or hover to reveal
+// "Add New Transaction" / "Balance Transfer" without clicking (desktop only;
+// hidden on mobile since the bottom nav already has its own + button).
+function toggleAddTxnMenu(e){
+  if(e)e.stopPropagation();
+  document.getElementById('add-txn-switcher').classList.toggle('open');
+}
+function closeAddTxnMenu(){
+  document.getElementById('add-txn-switcher').classList.remove('open');
+}
+(function initAddTxnMenuHover(){
+  const menu=document.getElementById('add-txn-switcher');
   if(!menu) return;
   let hoverTimeout;
   menu.addEventListener('mouseenter',()=>{clearTimeout(hoverTimeout);menu.classList.add('open')});
