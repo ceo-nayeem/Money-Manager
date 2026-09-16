@@ -316,7 +316,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .filter-group{display:flex;gap:8px;flex-wrap:wrap}
 .filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:6px 12px;color:var(--text);font-family:var(--font-ui);font-size:12px;outline:none;cursor:pointer}
 .txn-full-list{display:flex;flex-direction:column;gap:10px}
-.txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);transition:background 0.15s,border-color 0.15s;gap:8px;min-width:0}
+.txn-full-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);transition:background 0.15s,border-color 0.15s;gap:8px;min-width:0;cursor:pointer}
 .txn-full-item:hover{background:var(--bg3);border-color:var(--border2)}
 .txn-actions{display:flex;align-items:center;gap:5px;flex-shrink:0;opacity:0;transform:translateX(6px);transition:opacity 0.2s ease,transform 0.2s ease;pointer-events:none}
 .txn-full-item:hover .txn-actions{opacity:1;transform:translateX(0);pointer-events:auto}
@@ -1861,6 +1861,25 @@ setTimeout(function(){
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-txn-actions">
+  <div class="modal" style="max-width:360px">
+    <button class="modal-close" onclick="closeModal('txn-actions')">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-right:20px">
+      <div id="txn-actions-emoji" style="font-size:26px;flex-shrink:0">💸</div>
+      <div style="min-width:0;flex:1">
+        <div id="txn-actions-name" style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="txn-actions-meta" style="font-size:11.5px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <div id="txn-actions-amount" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;flex-shrink:0"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <button class="btn btn-primary" id="txn-actions-edit-btn" style="width:100%;padding:11px;font-size:13px" onclick="txnActionsCustomize()">✏️ Customize Transaction</button>
+      <button class="btn" style="width:100%;padding:11px;font-size:13px;background:#ef444418;color:#ef4444;border:1px solid #ef444440" onclick="txnActionsDelete()">🗑️ Remove Transaction</button>
+      <button class="btn btn-ghost" style="width:100%;padding:11px;font-size:13px" onclick="closeModal('txn-actions')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2277,9 +2296,35 @@ function openModal(id,data=null){
   else if(id==='manage-cats')prepManageCats();
   else if(id==='transfer')openTransferModal();
   else if(id==='payoff')prepPayoffModal(data);
+  else if(id==='txn-actions')prepTxnActionsModal(data);
   document.getElementById('modal-'+id).classList.add('open');
 }
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
+let currentTxnActionsData=null;
+function prepTxnActionsModal(data){
+  currentTxnActionsData=data;
+  const isTransfer=data.type==='transfer';
+  const color=data.type==='income'?'#10b981':data.type==='payable'?'#f59e0b':data.type==='receivable'?'#06b6d4':isTransfer?'#8b5cf6':'#ef4444';
+  const sign=data.type==='income'?'+':data.type==='payable'?'🔴':data.type==='receivable'?'🔵':isTransfer?'🔁':'-';
+  document.getElementById('txn-actions-emoji').textContent=data.emoji||'💸';
+  document.getElementById('txn-actions-name').textContent=data.desc||'Transaction';
+  document.getElementById('txn-actions-meta').textContent=`${data.cat||''} · ${data.date||''}`;
+  const amtEl=document.getElementById('txn-actions-amount');
+  amtEl.textContent=`${sign}${fmt(data.amount)}`;
+  amtEl.style.color=color;
+  // Transfers are edited via a dedicated flow elsewhere, so hide "Customize" for them here.
+  document.getElementById('txn-actions-edit-btn').style.display=isTransfer?'none':'';
+}
+function txnActionsCustomize(){
+  const data=currentTxnActionsData;
+  closeModal('txn-actions');
+  openModal('add-txn',data);
+}
+function txnActionsDelete(){
+  const data=currentTxnActionsData;
+  closeModal('txn-actions');
+  deleteTxn(data.id);
+}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
 let txnType='expense',editTxnId=null,isGroupMode=false,linkedExistingIds=new Set();
@@ -3404,8 +3449,10 @@ function renderTransactionsPage(){
     const dragAttrs=canDrag?`draggable="true" data-txn-id="${t.id}" data-txn-date="${t.date}" ondragstart="txnDragStart(event)" ondragend="txnDragEnd(event)"`:`data-txn-date="${t.date}"`;
     const rowClass='txn-row-wrap'+(canDrag?' txn-draggable':'');
     const dragHandle=canDrag?`<span class="txn-drag-handle" title="Drag to reorder within this date">⠿⠿</span>`:'';
-    const editBtn=isTransfer?'':`<button class="txn-icon-btn" title="Edit" onclick="openModal('add-txn',${JSON.stringify(t).replace(/"/g,'&quot;')})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>`;
-    return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item"><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}<div class="txn-actions">${editBtn}<button class="txn-icon-btn danger" title="Delete" onclick="deleteTxn(${t.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>${subRows}</div>`;
+    // Clicking the row opens a popup with Customize / Remove actions, rather than
+    // showing hover-only icon buttons — keeps the row clean and works well on touch.
+    const rowOnclick=`onclick="if(!event.target.closest('button,.txn-drag-handle'))openModal('txn-actions',${JSON.stringify(t).replace(/"/g,'&quot;')})"`;
+    return`<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item" ${rowOnclick}><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div></div>${payBtn}</div></div>${subRows}</div>`;
   }).join(''):
   `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">No transactions match filter</div></div>`;
   initTxnListDnD();
