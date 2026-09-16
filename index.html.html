@@ -556,7 +556,20 @@ body::before{
     radial-gradient(620px 480px at 102% 6%, var(--ambient2), transparent 55%),
     radial-gradient(700px 560px at 28% 112%, var(--ambient3), transparent 60%);
 }
-.app{position:relative;z-index:1}
+.app{position:relative}
+/* NOTE: intentionally no z-index here. Giving `.app` an explicit z-index
+   (it used to be `z-index:1`) turns it into its OWN stacking context —
+   and since `.hamburger` and `.sidebar-overlay` live OUTSIDE `.app` as
+   siblings with z-index 60/40, their z-index is then compared against
+   `.app`'s single z-index of 1 in the root context, not against
+   `.sidebar`'s z-index:50 inside it. Result: `.sidebar-overlay` (40 > 1)
+   painted over the ENTIRE `.app` subtree, including the sidebar itself —
+   exactly the "drawer opens but sits behind a blur" bug on mobile.
+   Leaving z-index unset here keeps `.app` at the default stack level,
+   so `.sidebar` (50) > `.sidebar-overlay` (40) > `.header` (20) resolve
+   correctly in the root stacking context, while `.app` still paints above
+   the ambient `body::before`/`.bg-wallpaper` background purely because it
+   comes later in the DOM (same stack level, tree order wins). */
 
 /* Glass surfaces
    NOTE: the frosted-glass look is painted on ::before, not on .sidebar itself.
