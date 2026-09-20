@@ -1374,6 +1374,9 @@ setTimeout(function(){
         </div>
       </div>
       <div class="header-right">
+        <button class="theme-trigger" id="global-search-trigger" title="Search Transactions" aria-label="Search transactions" onclick="openModal('search')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><circle cx="11" cy="11" r="7" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M21 21l-4.3-4.3"/></svg>
+        </button>
         <span class="chip" id="header-chip1">📈 Loading...</span>
         <span class="chip" id="header-chip2">✅ Budgets OK</span>
         <div class="add-txn-switcher" id="add-txn-switcher">
@@ -1530,6 +1533,9 @@ setTimeout(function(){
         <div class="txn-summary-bar" id="txn-summary-bar"></div>
         <div class="txn-page-header">
           <div class="filter-group">
+            <div style="position:relative">
+              <input class="filter-select" type="text" id="filter-search" placeholder="🔎 খুঁজুন: বিবরণ, ক্যাটাগরি, পরিমাণ..." oninput="renderTransactionsPage()" style="width:220px;padding-right:26px">
+            </div>
             <select class="filter-select" id="filter-type" onchange="renderTransactionsPage()"><option value="all">All Types</option><option value="income">Income</option><option value="expense">Expense</option><option value="payable">Payable</option><option value="receivable">Receivable</option><option value="transfer">🔁 Transfer</option></select>
             <select class="filter-select" id="filter-cat" onchange="renderTransactionsPage()"><option value="all">All Categories</option></select>
             <select class="filter-select" id="filter-sort" onchange="renderTransactionsPage()"><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
@@ -2068,6 +2074,21 @@ setTimeout(function(){
   </div>
 </div>
 
+<!-- Global Transaction Search — reachable from any page via the header search icon -->
+<div class="modal-overlay" id="modal-search">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="closeModal('search')">✕</button>
+    <div class="modal-title">🔎 Search Transactions</div>
+    <div style="position:relative;margin-bottom:4px">
+      <input class="form-input" type="text" id="global-search-input" placeholder="বিবরণ, ক্যাটাগরি, ব্যক্তি, পরিমাণ বা তারিখ লিখুন..." oninput="runGlobalSearch()" autocomplete="off" style="padding-right:36px">
+      <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.6;pointer-events:none">🔎</span>
+    </div>
+    <div style="font-size:10.5px;color:var(--text2);margin:6px 2px 12px">যেকোনো কিছু দিয়ে খুঁজুন — বিবরণ, ক্যাটাগরি, ব্যক্তির নাম, টাকার পরিমাণ (যেমন 500) অথবা তারিখ (যেমন 2026-04)</div>
+    <div id="global-search-results" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto"></div>
+  </div>
+</div>
+
+
 <!-- Custom Date Picker (replaces native <input type="date">, follows the active theme) -->
 <div class="modal-overlay picker-overlay" id="dp-overlay">
   <div class="modal dp-panel">
@@ -2596,6 +2617,7 @@ function openModal(id,data=null){
   else if(id==='transfer')openTransferModal();
   else if(id==='payoff')prepPayoffModal(data);
   else if(id==='txn-actions')prepTxnActionsModal(data);
+  else if(id==='search')prepSearchModal();
   document.getElementById('modal-'+id).classList.add('open');
 }
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
@@ -2630,6 +2652,55 @@ function deleteTxnFromModal(){
   closeModal('add-txn');
   deleteTxn(id);
 }
+
+// ══════════════════════════════════════════════
+//  GLOBAL TRANSACTION SEARCH — reachable from any page via the
+//  header search icon. Matches text (description, category, person,
+//  transfer parties), amount, and date — whatever the user types.
+// ══════════════════════════════════════════════
+function prepSearchModal(){
+  const input=document.getElementById('global-search-input');
+  if(input){input.value='';}
+  const results=document.getElementById('global-search-results');
+  if(results)results.innerHTML=`<div class="empty" style="padding:24px 0"><div class="empty-icon">🔎</div><div class="empty-text">টাইপ করা শুরু করুন — বিবরণ, ক্যাটাগরি, ব্যক্তি, পরিমাণ বা তারিখ দিয়ে খুঁজুন</div></div>`;
+  setTimeout(()=>{if(input)input.focus()},80);
+}
+function runGlobalSearch(){
+  const q=(document.getElementById('global-search-input').value||'').trim();
+  const resultsEl=document.getElementById('global-search-results');
+  if(!resultsEl)return;
+  if(!q){
+    resultsEl.innerHTML=`<div class="empty" style="padding:24px 0"><div class="empty-icon">🔎</div><div class="empty-text">টাইপ করা শুরু করুন — বিবরণ, ক্যাটাগরি, ব্যক্তি, পরিমাণ বা তারিখ দিয়ে খুঁজুন</div></div>`;
+    return;
+  }
+  const matches=[...DATA.transactions].filter(t=>txnMatchesQuery(t,q))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .slice(0,40);
+  if(!matches.length){
+    resultsEl.innerHTML=`<div class="empty" style="padding:24px 0"><div class="empty-icon">📭</div><div class="empty-text">কোনো transaction পাওয়া যায়নি</div></div>`;
+    return;
+  }
+  resultsEl.innerHTML=matches.map(t=>{
+    const isTransfer=t.type==='transfer';
+    const isLR=(t.type==='payable'||t.type==='receivable');
+    const color=t.type==='income'?'#10b981':t.type==='payable'?'#f59e0b':t.type==='receivable'?'#06b6d4':isTransfer?'#8b5cf6':'#ef4444';
+    const sign=t.type==='income'?'+':t.type==='payable'?'🔴':t.type==='receivable'?'🔵':isTransfer?'🔁':'-';
+    const subLabel=isTransfer?`${t.fromName||'—'} → ${t.toName||'—'}`:isLR&&t.person?`${t.person} · ${t.cat}`:t.cat;
+    const safeData=JSON.stringify(t).replace(/"/g,'&quot;');
+    return`<div class="txn-item" onclick="openSearchResult(${safeData})" style="cursor:pointer">
+      <div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div>
+        <div><div class="txn-name">${t.desc||'—'}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div>
+      </div>
+      <div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div>
+    </div>`;
+  }).join('');
+}
+function openSearchResult(t){
+  closeModal('search');
+  const isTransfer=t.type==='transfer';
+  openModal(isTransfer?'txn-actions':'add-txn',t);
+}
+
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'))});
 
@@ -3885,11 +3956,20 @@ function resetTxnFilters(){
   const typeSel=document.getElementById('filter-type');
   const catSel=document.getElementById('filter-cat');
   const sortSel=document.getElementById('filter-sort');
+  const searchEl=document.getElementById('filter-search');
   if(typeSel) typeSel.value='all';
   if(catSel) catSel.value='all';
   if(sortSel) sortSel.value='date-desc';
+  if(searchEl) searchEl.value='';
   renderTransactionsPage();
   toast('ফিল্টার রিসেট হয়েছে ✓','info');
+}
+function txnMatchesQuery(t,q){
+  if(!q) return true;
+  q=q.trim().toLowerCase();
+  if(!q) return true;
+  const parts=[t.desc,t.cat,t.person,t.fromName,t.toName,t.date,t.time,String(t.amount)].filter(Boolean);
+  return parts.some(p=>String(p).toLowerCase().includes(q));
 }
 function renderTransactionsPage(){
   const{income,expense,savings,payable,receivable}=calcStats();
@@ -3901,15 +3981,20 @@ function renderTransactionsPage(){
   const typeF=document.getElementById('filter-type').value;
   const catF=catSel.value;
   const sortF=document.getElementById('filter-sort').value;
+  const searchEl=document.getElementById('filter-search');
+  const searchQ=searchEl?searchEl.value.trim():'';
   if(typeF!=='all')txns=txns.filter(t=>t.type===typeF);
   if(catF!=='all')txns=txns.filter(t=>t.cat===catF);
-  const isFiltered=(typeF!=='all'||catF!=='all');
+  if(searchQ)txns=txns.filter(t=>txnMatchesQuery(t,searchQ));
+  const isFiltered=(typeF!=='all'||catF!=='all'||!!searchQ);
   const filteredTotal=txns.reduce((s,t)=>s+t.amount,0);
   const typeLabels={income:'Income',expense:'Expense',payable:'🔴 Payable',receivable:'🔵 Receivable',transfer:'🔁 Transfer'};
   let filterLabel='Filtered Total';
   if(catF!=='all'&&typeF!=='all')filterLabel=`${catF} (${typeLabels[typeF]})`;
   else if(catF!=='all')filterLabel=catF;
   else if(typeF!=='all')filterLabel=`Total ${typeLabels[typeF]}`;
+  else if(searchQ)filterLabel=`"${searchQ}" এর ফলাফল`;
+  if(searchQ&&(catF!=='all'||typeF!=='all'))filterLabel+=` · "${searchQ}"`;
   const filterColor=typeF==='income'?'up':typeF==='expense'?'down':'';
   const sb=document.getElementById('txn-summary-bar');
   const filteredCard=isFiltered?`<div class="txn-summary-item" style="border-color:var(--accent)"><div class="txn-summary-label">🔎 ${filterLabel}</div><div class="txn-summary-val ${filterColor}">${fmt(filteredTotal)}</div><div style="font-size:10px;color:var(--text2);margin-top:2px">${txns.length} টি ট্রানজেকশন</div></div>`:'';
@@ -4746,13 +4831,13 @@ function checkAutoLogin(){
   // onAuthStateChanged listener below — nothing to do here for a fresh load.
 }
 function logout(){
-  sessionStorage.removeItem('finvault_logged_in');
+  localStorage.removeItem('finvault_logged_in');
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('blocked-screen').style.display='none';
   document.getElementById('onboarding-screen').style.display='none';
   closeSidebar&&closeSidebar();
-  sessionStorage.removeItem('finvault_google_uid');
+  localStorage.removeItem('finvault_google_uid');
   currentUserMeta=null;
   pendingOnboardUser=null; pendingOnboardMeta=null;
   // Also sign out of Google
@@ -4767,12 +4852,17 @@ function logout(){
 // ─── Google Sign-In ───────────────────────────────────────────────────────
 async function ensureAuth() {
   if (auth) return auth;
-  const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+  const { getAuth, setPersistence, browserLocalPersistence } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
   if (!firebaseApp) {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
     firebaseApp = initializeApp(firebaseConfig);
   }
   auth = getAuth(firebaseApp);
+  // Keep the sign-in alive in this browser across tab closes and restarts —
+  // it only clears when the person signs out, or the browser's own storage
+  // (cookies/site data) is cleared. Without this, some browsers can fall
+  // back to a session-only login that disappears the moment the tab closes.
+  try { await setPersistence(auth, browserLocalPersistence); } catch (e) { console.warn('setPersistence failed:', e); }
   return auth;
 }
 
@@ -4819,8 +4909,8 @@ async function onGoogleLoginSuccess(user){
 
 async function finalizeGoogleLogin(user, meta){
   currentUserMeta = meta;
-  sessionStorage.setItem('finvault_logged_in', '1');
-  sessionStorage.setItem('finvault_google_uid', user.uid);
+  localStorage.setItem('finvault_logged_in', '1');
+  localStorage.setItem('finvault_google_uid', user.uid);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('onboarding-screen').style.display = 'none';
   const n = (meta.profile && meta.profile.name) || user.displayName || DATA.profile.name || 'User';
@@ -4979,7 +5069,7 @@ async function checkGoogleAutoLogin(){
     await ensureAuth();
     const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
     onAuthStateChanged(auth, async (user) => {
-      if (user && sessionStorage.getItem('finvault_google_uid') === user.uid) {
+      if (user && localStorage.getItem('finvault_google_uid') === user.uid) {
         await onGoogleLoginSuccess(user);
       }
     });
