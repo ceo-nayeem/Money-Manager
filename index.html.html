@@ -311,7 +311,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .txn-balance-after{font-size:10px;color:var(--text3);margin-top:2px;text-align:right;white-space:nowrap}
 .txn-date-divider{display:flex;align-items:center;gap:10px;padding:2px 2px}
 .txn-date-divider-label{font-size:11.5px;font-weight:700;color:var(--text2);letter-spacing:0.2px;white-space:nowrap}
-.txn-date-divider-line{flex:1;height:1px;background:var(--border)}
+.txn-date-divider-line{flex:1;height:1px;background:var(--border);min-width:24px}
+.txn-date-divider{flex-wrap:wrap;row-gap:6px}
+.txn-date-summary{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.tds-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 8px;border-radius:var(--radius-pill);background:var(--bg3);border:1px solid var(--border);font-size:10.5px;font-weight:500;color:var(--text2);white-space:nowrap;line-height:1.4}
+.tds-chip i{width:6px;height:6px;border-radius:50%;background:var(--c);flex-shrink:0}
+.tds-chip b{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:var(--c)}
+@media(max-width:768px){.txn-date-summary{flex-basis:100%;justify-content:flex-start}}
 .txn-delete{opacity:0;font-size:12px;cursor:pointer;color:var(--accent5);transition:opacity 0.15s;padding:2px 6px;border-radius:4px;background:none;border:none;font-family:var(--font-ui)}
 .txn-item:hover .txn-delete{opacity:1}
 @media(max-width:768px){.txn-delete{opacity:0.6}}
@@ -1896,7 +1902,12 @@ setTimeout(function(){
     </div>
     <div class="form-group">
       <label class="form-label">Amount (৳)</label>
-      <input class="form-input" type="number" id="transfer-amount" placeholder="0" min="0">
+      <input class="form-input" type="number" id="transfer-amount" placeholder="0" min="0" oninput="updateTransferFeeHint()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Transaction Fee (৳) — অপশনাল</label>
+      <input class="form-input" type="number" id="transfer-fee" placeholder="0" min="0" oninput="updateTransferFeeHint()">
+      <div id="transfer-fee-hint" style="display:none;font-size:10.5px;color:var(--text2);margin-top:6px;line-height:1.5"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Date</label>
@@ -2383,6 +2394,15 @@ const today=()=>new Date().toISOString().split('T')[0];
 // ── Date-group divider label: "Today" / "Yesterday" / "Weekday, D Month YYYY" ──
 const TXN_DIVIDER_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const TXN_DIVIDER_WEEKDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// Short per-day summary shown beside each date divider: only the buckets that
+// actually have something that day (income / expense / receivable / payable).
+// Transfers are skipped — they only move money between accounts.
+function txnDaySummaryHTML(d){
+  if(!d)return'';
+  const defs=[['income','Income','#10b981'],['expense','Expense','#ef4444'],['receivable','Receivable','#06b6d4'],['payable','Payable','#f59e0b']];
+  const chips=defs.filter(([k])=>d[k]>0).map(([k,l,c])=>`<span class="tds-chip" style="--c:${c}"><i></i>${l}<b>${fmt(d[k])}</b></span>`).join('');
+  return chips?`<span class="txn-date-summary">${chips}</span>`:'';
+}
 function txnDateDividerLabel(dateStr){
   if(!dateStr)return'Unknown Date';
   if(dateStr===today())return'Today';
@@ -2901,8 +2921,10 @@ function populateCatSelect(id,cats,selected=null){
   saveData();closeModal('add-txn');renderAll();
 }
 function deleteTxn(id){
-  if(!confirm('Delete this transaction?'))return;
   const txn=DATA.transactions.find(t=>t.id==id);
+  const findFeeTxn=tr=>DATA.transactions.find(t=>t.id!=tr.id&&((tr.feeTxnId&&t.id==tr.feeTxnId)||t.linkedTransferTxnId==tr.id));
+  const feeTxn=(txn&&txn.type==='transfer')?findFeeTxn(txn):null;
+  if(!confirm(feeTxn?'Delete this transfer? এর সাথে যুক্ত Transaction Fee এন্ট্রিটিও মুছে যাবে।':'Delete this transaction?'))return;
   // If deleting a group txn, unlink its linked children
   if(txn&&txn.splits){
     txn.splits.forEach(s=>{
@@ -2922,6 +2944,12 @@ function deleteTxn(id){
       if(fi!==-1)DATA.accounts[fi].balance+=txn.amount;
       if(ti!==-1)DATA.accounts[ti].balance-=txn.amount;
       if(txn.transferId&&Array.isArray(DATA.transfers))DATA.transfers=DATA.transfers.filter(tr=>tr.id!==txn.transferId);
+      // Linked Transaction Fee entry: give the fee back to its account and remove it too
+      if(feeTxn){
+        const fai=DATA.accounts.findIndex(a=>a.id===(feeTxn.account||txn.fromAccount));
+        if(fai!==-1)DATA.accounts[fai].balance+=feeTxn.amount;
+        DATA.transactions=DATA.transactions.filter(t=>t.id!=feeTxn.id);
+      }
     } else if(txn.splits&&txn.splits.length>0){
       // Group transaction: revert per-split balances
       txn.splits.forEach(s=>{
@@ -3740,6 +3768,12 @@ function renderTransactionsPage(){
   });
   const el=document.getElementById('txn-full-list');if(!el)return;
   const balSnapshots=computeTxnBalanceSnapshots();
+  // Per-date totals (based on the rows currently shown, so filters are respected)
+  const dayTotals={};
+  if(isDateSort)txns.forEach(t=>{
+    const d=dayTotals[t.date]||(dayTotals[t.date]={income:0,expense:0,receivable:0,payable:0});
+    if(t.type in d)d[t.type]+=t.amount;
+  });
   let lastDividerDate=null;
   el.innerHTML=txns.length?txns.map((t,idx)=>{
     const isTransfer=t.type==='transfer';
@@ -3804,7 +3838,7 @@ function renderTransactionsPage(){
     let divider='';
     if(isDateSort&&t.date!==lastDividerDate){
       lastDividerDate=t.date;
-      divider=`<div class="txn-date-divider" style="margin-top:${idx===0?'0':'10px'}"><span class="txn-date-divider-label">${txnDateDividerLabel(t.date)}</span><span class="txn-date-divider-line"></span></div>`;
+      divider=`<div class="txn-date-divider" style="margin-top:${idx===0?'0':'10px'}"><span class="txn-date-divider-label">${txnDateDividerLabel(t.date)}</span><span class="txn-date-divider-line"></span>${txnDaySummaryHTML(dayTotals[t.date])}</div>`;
     }
     return`${divider}<div class="${rowClass}" ${dragAttrs}${transferRowStyle}><div class="txn-full-item" ${rowOnclick}><div class="txn-left" style="flex:1;min-width:0">${dragHandle}<div class="txn-emoji">${t.emoji||'💸'}</div><div style="min-width:0"><div class="txn-name">${t.desc}${transferBadge}${statusBadge}${groupBadge}${inGroupBadge}</div><div class="txn-cat">${personInfo}${t.cat} · ${t.date}${timeBadge}</div></div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${expandBtn}<div style="text-align:right"><div class="txn-amount" style="color:${color}">${sign}${fmt(t.amount)}</div><div class="txn-date">${label}</div>${balanceAfterLine}</div>${payBtn}</div></div>${subRows}</div>`;
   }).join(''):
@@ -4445,10 +4479,22 @@ function openTransferModal(){
   document.getElementById('transfer-to').innerHTML=opts;
   document.getElementById('transfer-to').selectedIndex=1;
   document.getElementById('transfer-amount').value='';
+  document.getElementById('transfer-fee').value='';
+  updateTransferFeeHint();
   document.getElementById('transfer-date').value=today();
   const timeEl=document.getElementById('transfer-time');
   if(timeEl)timeEl.value='';
   document.getElementById('modal-transfer').classList.add('open');
+}
+
+function updateTransferFeeHint(){
+  const hint=document.getElementById('transfer-fee-hint');if(!hint)return;
+  const fee=parseFloat(document.getElementById('transfer-fee').value)||0;
+  const amt=parseFloat(document.getElementById('transfer-amount').value)||0;
+  if(fee>0){
+    hint.style.display='block';
+    hint.innerHTML=`⚡ Fee আলাদা <b>Utilities</b> expense হিসেবে যোগ হবে · From account থেকে মোট কাটবে <b style="color:var(--text)">${fmtFull(amt+fee)}</b>`;
+  }else{hint.style.display='none';hint.innerHTML='';}
 }
 
 function doTransfer(){
@@ -4461,21 +4507,45 @@ function doTransfer(){
   const time=timeEl?timeEl.value:'';
   if(fromId===toId){toast('Select different accounts','error');return}
   if(!amt||amt<=0){toast('Enter a valid amount','error');return}
+  const feeRaw=parseFloat(document.getElementById('transfer-fee').value);
+  if(!isNaN(feeRaw)&&feeRaw<0){toast('Fee cannot be negative','error');return}
+  const fee=(!isNaN(feeRaw)&&feeRaw>0)?feeRaw:0;
   const fi=DATA.accounts.findIndex(a=>a.id===fromId);
   const ti=DATA.accounts.findIndex(a=>a.id===toId);
   if(fi===-1||ti===-1)return;
-  if(DATA.accounts[fi].balance<amt){toast('Insufficient balance in '+DATA.accounts[fi].name,'error');return}
-  DATA.accounts[fi].balance-=amt;
-  DATA.accounts[ti].balance+=amt;
+  if(DATA.accounts[fi].balance<amt+fee){toast('Insufficient balance in '+DATA.accounts[fi].name+(fee>0?' (amount + fee)':''),'error');return}
+  DATA.accounts[fi].balance-=(amt+fee);   // transfer amount + fee both leave the source account
+  DATA.accounts[ti].balance+=amt;         // destination receives only the transfer amount
   if(!DATA.transfers)DATA.transfers=[];
   const transferId=uid();
   const fromName=DATA.accounts[fi].name, toName=DATA.accounts[ti].name;
-  DATA.transfers.unshift({id:transferId,from:fromId,to:toId,amount:amt,date,time});
+  DATA.transfers.unshift({id:transferId,from:fromId,to:toId,amount:amt,fee,date,time});
   // ব্যালেন্স ট্রান্সফারকেও একটি ইউনিক, চেনা-যায় এমন ট্রানজেকশন হিসেবে যোগ করা হচ্ছে
   // যাতে এটি Transactions তালিকায় সময় অনুযায়ী সাজানো যায় এবং সহজেই আলাদা করা যায়।
   if(!Array.isArray(DATA.transactions))DATA.transactions=[];
+  const transferTxnId=uid();
+  const transferSort=time?undefined:nextTxnSortOrder(date);
+  // Transaction fee → its own expense entry (category: Utilities), charged to the source account
+  let feeTxnId=null;
+  if(fee>0){
+    if(!CATS.expense.some(c=>c.name==='Utilities'))CATS.expense.push({name:'Utilities',emoji:'⚡',color:'#84cc16'});
+    do{feeTxnId=uid()}while(feeTxnId===transferTxnId);
+    DATA.transactions.unshift({
+      id:feeTxnId,
+      type:'expense',
+      desc:`Transaction Fee: ${fromName} → ${toName}`,
+      cat:'Utilities',
+      emoji:getCatEmoji('Utilities'),
+      amount:fee,
+      date,
+      time:time||'',
+      account:fromId,
+      linkedTransferTxnId:transferTxnId,
+      ...(transferSort!==undefined&&{sortOrder:transferSort+1})
+    });
+  }
   DATA.transactions.unshift({
-    id:uid(),
+    id:transferTxnId,
     type:'transfer',
     desc:`Balance Transfer: ${fromName} → ${toName}`,
     cat:'Transfer',
@@ -4487,10 +4557,12 @@ function doTransfer(){
     fromAccount:fromId,
     toAccount:toId,
     fromName,
-    toName
+    toName,
+    ...(fee>0&&{feeAmount:fee,feeTxnId}),
+    ...(transferSort!==undefined&&{sortOrder:transferSort})
   });
   saveData();closeModal('transfer');renderAccountsPage();renderAll();
-  toast(`৳${Math.round(amt).toLocaleString()} transferred from ${fromName} to ${toName} ✓`);
+  toast(`৳${Math.round(amt).toLocaleString()} transferred from ${fromName} to ${toName}`+(fee>0?` (+ ৳${Math.round(fee).toLocaleString()} fee)`:'')+' ✓');
 }
 function renderAll(){
   renderKPI();renderDashTxnList();renderDashBudgets();renderDashGoals();buildFlowChart();buildDonutChart();
