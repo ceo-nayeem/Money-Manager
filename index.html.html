@@ -300,13 +300,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .legend-pct{color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px}
 .bottom-row{display:grid;grid-template-columns:1fr minmax(0,290px);gap:14px;margin-bottom:20px}
 .txn-list{display:flex;flex-direction:column;gap:2px}
-.txn-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background 0.15s}
+.txn-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background 0.15s;gap:10px}
 .txn-item:hover{background:var(--bg3)}
-.txn-left{display:flex;align-items:center;gap:10px}
+.txn-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.txn-left>div:last-child{min-width:0;overflow:hidden}
 .txn-emoji{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.txn-name{font-size:12.5px;font-weight:500}
-.txn-cat{font-size:10.5px;color:var(--text2)}
-.txn-amount{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;text-align:right}
+.txn-name{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-cat{font-size:10.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-amount{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;text-align:right;flex-shrink:0;white-space:nowrap}
+/* Search-result rows get their own bordered "card" look so a long list of
+   matches stays clearly separated instead of visually running together. */
+.search-result-list{display:flex;flex-direction:column;gap:8px}
+.search-result-item{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:10px 11px}
+.search-result-item:hover{background:var(--bg4);border-color:var(--border2)}
 .txn-date{font-size:10px;color:var(--text3);margin-top:2px;text-align:right}
 .txn-balance-after{font-size:10px;color:var(--text3);margin-top:2px;text-align:right;white-space:nowrap}
 .txn-date-divider{display:flex;align-items:center;gap:10px;padding:2px 2px}
@@ -2084,7 +2090,7 @@ setTimeout(function(){
       <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.6;pointer-events:none">🔎</span>
     </div>
     <div style="font-size:10.5px;color:var(--text2);margin:6px 2px 12px">যেকোনো কিছু দিয়ে খুঁজুন — বিবরণ, ক্যাটাগরি, ব্যক্তির নাম, টাকার পরিমাণ (যেমন 500) অথবা তারিখ (যেমন 2026-04)</div>
-    <div id="global-search-results" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto"></div>
+    <div id="global-search-results" class="search-result-list" style="max-height:420px;overflow-y:auto;padding-right:2px"></div>
   </div>
 </div>
 
@@ -2687,7 +2693,7 @@ function runGlobalSearch(){
     const sign=t.type==='income'?'+':t.type==='payable'?'🔴':t.type==='receivable'?'🔵':isTransfer?'🔁':'-';
     const subLabel=isTransfer?`${t.fromName||'—'} → ${t.toName||'—'}`:isLR&&t.person?`${t.person} · ${t.cat}`:t.cat;
     const safeData=JSON.stringify(t).replace(/"/g,'&quot;');
-    return`<div class="txn-item" onclick="openSearchResult(${safeData})" style="cursor:pointer">
+    return`<div class="txn-item search-result-item" onclick="openSearchResult(${safeData})">
       <div class="txn-left"><div class="txn-emoji">${t.emoji||'💸'}</div>
         <div><div class="txn-name">${t.desc||'—'}</div><div class="txn-cat">${subLabel} · ${t.date}</div></div>
       </div>
