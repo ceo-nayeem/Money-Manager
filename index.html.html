@@ -280,7 +280,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .kpi-value{font-size:22px;font-weight:700;letter-spacing:-1px;font-family:'JetBrains Mono',monospace}
 .kpi-change{font-size:11px;margin-top:6px}
 .up{color:#10b981}.down{color:#ef4444}
-.kpi-icon{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--glass-faint);backdrop-filter:blur(6px)}
+.kpi-icon{position:static;width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--glass-faint);backdrop-filter:blur(6px);flex-shrink:0}
 
 .charts-row{display:grid;grid-template-columns:1fr minmax(0,320px);gap:14px;margin-bottom:20px;height:auto}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-radius);padding:18px}
@@ -333,6 +333,52 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
 .goal-card:hover{border-color:var(--border2)}
 .goal-bar{height:4px;background:var(--bg5);border-radius:4px;overflow:hidden;margin-bottom:8px}
 .goal-fill{height:100%;border-radius:4px}
+
+/* ══════════════════════════════════════════════════════════════════
+   🆕 DASHBOARD REDESIGN — highlight strip, modern KPI cards,
+   account snapshot, mini top-categories list, 3-col layout.
+   ══════════════════════════════════════════════════════════════════ */
+.dash-highlights{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.hl-card{flex:1 1 170px;background:var(--glass-surface);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:11px 13px;display:flex;align-items:center;gap:10px;transition:all .22s var(--ease-out);min-width:0}
+.hl-card:hover{transform:translateY(-2px);border-color:var(--border2);background:var(--glass-surface-hover)}
+.hl-emoji{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--glass-faint);flex-shrink:0}
+.hl-body{min-width:0;flex:1}
+.hl-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl-value{font-size:13.5px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+
+.dash-section-head{display:flex;align-items:center;justify-content:space-between;margin:22px 0 12px;gap:8px;flex-wrap:wrap}
+.dash-section-title{font-size:13px;font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:7px}
+
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:11px;gap:8px}
+.kpi-change{display:inline-flex;align-items:center;font-size:10px;padding:3px 9px;border-radius:var(--radius-pill);background:var(--glass-faint);font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.kpi-change.up{color:#10b981;background:#10b98116}
+.kpi-change.down{color:#ef4444;background:#ef444416}
+.kpi-sub-row{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:8px}
+.kpi-sub-chip{font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--text2);opacity:.85}
+
+.account-snap-row{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px}
+.acc-snap-card{flex:0 0 auto;min-width:152px;background:var(--glass-surface);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:12px 14px;cursor:pointer;transition:all .2s var(--ease-out)}
+.acc-snap-card:hover{transform:translateY(-2px);border-color:var(--border2);background:var(--glass-surface-hover)}
+.acc-snap-top{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.acc-snap-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.acc-snap-name{font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc-snap-bal{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+.mini-list{display:flex;flex-direction:column;gap:10px}
+.mini-cat-item{display:flex;align-items:center;gap:10px}
+.mini-cat-emoji{width:28px;height:28px;border-radius:9px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.mini-cat-body{flex:1;min-width:0}
+.mini-cat-top{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;gap:6px}
+.mini-cat-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-cat-val{font-family:'JetBrains Mono',monospace;font-weight:600;flex-shrink:0}
+.mini-cat-bar{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.mini-cat-fill{height:100%;border-radius:4px}
+
+.dash-3col{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:14px;margin-bottom:20px}
+.scroll-y{max-height:272px;overflow-y:auto;padding-right:3px}
+@media(max-width:1100px){.dash-3col{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.dash-3col{grid-template-columns:1fr}}
+
 .txn-page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .filter-group{display:flex;gap:8px;flex-wrap:wrap}
 .filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:6px 12px;color:var(--text);font-family:var(--font-ui);font-size:12px;outline:none;cursor:pointer}
@@ -491,7 +537,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-heigh
   .kpi-value{font-size:17px;letter-spacing:-0.5px}
   .kpi-label{font-size:9.5px}
   .kpi-change{font-size:10px}
-  .kpi-icon{font-size:15px;right:10px;top:10px}
+  .kpi-icon{font-size:15px;width:30px;height:30px}
+  .kpi-change{font-size:9px;padding:2px 7px}
+  .dash-highlights{gap:7px}
+  .hl-card{flex:1 1 130px;padding:9px 10px}
+  .hl-value{font-size:12px}
   /* Content padding */
   .content{padding:12px}
   /* Cards */
@@ -1394,37 +1444,82 @@ setTimeout(function(){
     <div class="content">
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
+        <!-- Today's Highlights strip -->
+        <div class="dash-highlights" id="dash-highlights"></div>
+
+        <!-- KPI Grid -->
         <div class="kpi-grid">
-          <div class="kpi-card blue"><div class="kpi-label">Total Balance</div><div class="kpi-value" id="kpi-balance">৳0</div><div class="kpi-change up" id="kpi-balance-ch">Net position</div><div style="display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:4px"><span class="kpi-value" id="kpi-balance-minus-budget" style="font-size:10.5px;font-weight:600;letter-spacing:0;opacity:0.55">৳0</span><span class="kpi-value" id="kpi-balance-minus-debt" style="font-size:10.5px;font-weight:600;letter-spacing:0;opacity:0.55">৳0</span></div><div class="kpi-icon">💰</div></div>
-          <div class="kpi-card green"><div class="kpi-label">Monthly Income</div><div class="kpi-value" id="kpi-income">৳0</div><div class="kpi-change up">▲ This month</div><div class="kpi-icon">📥</div></div>
-          <div class="kpi-card amber"><div class="kpi-label">Monthly Expenses</div><div class="kpi-value" id="kpi-expense">৳0</div><div class="kpi-change" id="kpi-expense-ch">This month</div><div class="kpi-icon">📤</div></div>
-          <div class="kpi-card purple"><div class="kpi-label">Net Savings</div><div class="kpi-value" id="kpi-savings">৳0</div><div class="kpi-change" id="kpi-savings-ch">Savings rate</div><div class="kpi-icon">🏦</div></div>
-          <div class="kpi-card orange"><div class="kpi-label">Total Payable (ঋণ)</div><div class="kpi-value" id="kpi-payable">৳0</div><div class="kpi-change down" id="kpi-payable-ch">পরিশোধযোগ্য</div><div class="kpi-icon">🔴</div></div>
-          <div class="kpi-card cyan"><div class="kpi-label">Total Receivable (পাওনা)</div><div class="kpi-value" id="kpi-receivable">৳0</div><div class="kpi-change up" id="kpi-receivable-ch">আদায়যোগ্য</div><div class="kpi-icon">🔵</div></div>
+          <div class="kpi-card blue">
+            <div class="kpi-top"><div class="kpi-icon">💰</div><div class="kpi-change up" id="kpi-balance-ch">Net position</div></div>
+            <div class="kpi-label">Total Balance</div>
+            <div class="kpi-value" id="kpi-balance">৳0</div>
+            <div class="kpi-sub-row"><span class="kpi-sub-chip" id="kpi-balance-minus-budget">৳0</span><span class="kpi-sub-chip" id="kpi-balance-minus-debt">৳0</span></div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-top"><div class="kpi-icon">📥</div><div class="kpi-change up">▲ This month</div></div>
+            <div class="kpi-label">Monthly Income</div>
+            <div class="kpi-value" id="kpi-income">৳0</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-top"><div class="kpi-icon">📤</div><div class="kpi-change" id="kpi-expense-ch">This month</div></div>
+            <div class="kpi-label">Monthly Expenses</div>
+            <div class="kpi-value" id="kpi-expense">৳0</div>
+          </div>
+          <div class="kpi-card purple">
+            <div class="kpi-top"><div class="kpi-icon">🏦</div><div class="kpi-change" id="kpi-savings-ch">Savings rate</div></div>
+            <div class="kpi-label">Net Savings</div>
+            <div class="kpi-value" id="kpi-savings">৳0</div>
+          </div>
+          <div class="kpi-card orange">
+            <div class="kpi-top"><div class="kpi-icon">🔴</div><div class="kpi-change down" id="kpi-payable-ch">পরিশোধযোগ্য</div></div>
+            <div class="kpi-label">Total Payable (ঋণ)</div>
+            <div class="kpi-value" id="kpi-payable">৳0</div>
+          </div>
+          <div class="kpi-card cyan">
+            <div class="kpi-top"><div class="kpi-icon">🔵</div><div class="kpi-change up" id="kpi-receivable-ch">আদায়যোগ্য</div></div>
+            <div class="kpi-label">Total Receivable (পাওনা)</div>
+            <div class="kpi-value" id="kpi-receivable">৳0</div>
+          </div>
         </div>
+
+        <!-- Charts row -->
         <div class="charts-row">
           <div class="card">
             <div class="card-header"><span class="card-title">Cash Flow Overview</span>
-              <div class="tab-group"><div class="tab active" onclick="switchFlowChart(this,'6M')">6M</div><div class="tab" onclick="switchFlowChart(this,'3M')">3M</div><div class="tab" onclick="switchFlowChart(this,'1M')">1M</div></div>
+              <div class="tab-group"><div class="tab" onclick="switchFlowChart(this,'1M')">1M</div><div class="tab" onclick="switchFlowChart(this,'3M')">3M</div><div class="tab active" onclick="switchFlowChart(this,'6M')">6M</div><div class="tab" onclick="switchFlowChart(this,'1Y')">1Y</div></div>
             </div>
             <canvas id="flowChart"></canvas>
           </div>
           <div class="card">
-            <div class="card-header"><span class="card-title">Spending by Category</span></div>
-            <div class="donut-wrap"><canvas id="donutChart"></canvas><div class="donut-center"><div class="donut-total" id="donut-total">৳0</div><div class="donut-lbl">this month</div></div></div>
+            <div class="card-header"><span class="card-title">Spending by Category</span>
+              <div class="tab-group"><div class="tab active" onclick="switchDonutChart(this,'expense')">Expense</div><div class="tab" onclick="switchDonutChart(this,'income')">Income</div></div>
+            </div>
+            <div class="donut-wrap"><canvas id="donutChart"></canvas><div class="donut-center"><div class="donut-total" id="donut-total">৳0</div><div class="donut-lbl" id="donut-lbl">this month</div></div></div>
             <div class="legend" id="donut-legend"></div>
           </div>
         </div>
-        <div class="bottom-row">
+
+        <!-- Account snapshot -->
+        <div class="dash-section-head"><span class="dash-section-title">💳 Account Snapshot</span><button class="btn btn-ghost btn-sm" onclick="switchPage('accounts')">Manage</button></div>
+        <div class="account-snap-row" id="dash-account-snap"></div>
+
+        <!-- Recent transactions / Budget status / Top categories -->
+        <div class="dash-3col">
           <div class="card">
             <div class="card-header"><span class="card-title">Recent Transactions</span><button class="btn btn-ghost btn-sm" onclick="switchPage('transactions')">View all</button></div>
-            <div class="txn-list" id="dash-txn-list"></div>
+            <div class="txn-list scroll-y" id="dash-txn-list"></div>
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">Budget Status</span><button class="btn btn-ghost btn-sm" onclick="switchPage('budgets')">Manage</button></div>
-            <div class="budget-items" id="dash-budget-items"></div>
+            <div class="budget-items scroll-y" id="dash-budget-items"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Top Categories</span><button class="btn btn-ghost btn-sm" onclick="switchPage('reports')">Reports</button></div>
+            <div class="mini-list scroll-y" id="dash-top-cats"></div>
           </div>
         </div>
+
+        <!-- Savings goals -->
         <div class="card">
           <div class="card-header"><span class="card-title">Savings Goals</span><button class="btn btn-ghost btn-sm" onclick="switchPage('goals')">Manage</button></div>
           <div class="goals-grid" id="dash-goals-grid"></div>
@@ -3565,7 +3660,7 @@ function calcStats(){
 let flowChart,donutChart,portfolioChart,reportBarChart,reportLineChart;
 function buildFlowChart(period='6M'){
   const ctx=document.getElementById('flowChart');if(!ctx)return;
-  const numMonths=period==='6M'?6:period==='3M'?3:1;
+  const numMonths=period==='1Y'?12:period==='6M'?6:period==='3M'?3:1;
   const monthKeys=[];
   for(let i=numMonths-1;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);monthKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
   const labels=monthKeys.map(k=>{const[y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleString('en-IN',{month:'short'});});
@@ -3574,18 +3669,32 @@ function buildFlowChart(period='6M'){
   if(flowChart)flowChart.destroy();
   flowChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Income',data:incomes,backgroundColor:'#10b98130',borderColor:'#10b981',borderWidth:1.5,borderRadius:5},{label:'Expenses',data:expenses,backgroundColor:'#ef444428',borderColor:'#ef4444',borderWidth:1.5,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getThemeVar('--text2'),font:{size:11},boxWidth:10}}},scales:{x:{ticks:{color:getThemeVar('--text2'),font:{size:10}},grid:{color:getThemeVar('--border2')}},y:{ticks:{color:getThemeVar('--text2'),font:{size:10},callback:v=>'৳'+Math.round(v/1000)+'K'},grid:{color:getThemeVar('--border2')}}}}});
 }
-function buildDonutChart(){
+let donutChartType='expense';
+function buildDonutChart(type){
+  type=type||donutChartType;donutChartType=type;
   const ctx=document.getElementById('donutChart');if(!ctx)return;
-  const catExp={};DATA.transactions.filter(t=>t.type==='expense').forEach(t=>{catExp[t.cat]=(catExp[t.cat]||0)+t.amount});
-  const cats=Object.keys(catExp),vals=Object.values(catExp),colors=cats.map(c=>getCatColor(c));
+  const catAgg={};DATA.transactions.filter(t=>t.type===type).forEach(t=>{catAgg[t.cat]=(catAgg[t.cat]||0)+t.amount});
+  const cats=Object.keys(catAgg),vals=Object.values(catAgg),colors=cats.map(c=>getCatColor(c));
   const total=vals.reduce((a,b)=>a+b,0);
   document.getElementById('donut-total').textContent=fmt(total);
+  const lblEl=document.getElementById('donut-lbl');
+  if(lblEl)lblEl.textContent=type==='expense'?'spent · all time':'earned · all time';
   if(donutChart)donutChart.destroy();
+  if(!cats.length){
+    const legend=document.getElementById('donut-legend');
+    if(legend)legend.innerHTML=`<div class="empty" style="padding:6px 0"><div class="empty-text">No ${type} data yet</div></div>`;
+    return;
+  }
   donutChart=new Chart(ctx,{type:'doughnut',data:{labels:cats,datasets:[{data:vals,backgroundColor:colors,borderWidth:0,hoverOffset:6}]},options:{cutout:'72%',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)}`}}}}});
   const legend=document.getElementById('donut-legend');
   if(legend)legend.innerHTML=cats.map((c,i)=>`<div class="legend-item"><div class="legend-left"><div class="legend-dot" style="background:${colors[i]}"></div><span>${c}</span></div><span class="legend-pct">${Math.round((vals[i]/total)*100)}%</span></div>`).join('');
 }
-function switchFlowChart(el,period){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');buildFlowChart(period)}
+function switchDonutChart(el,type){
+  el.closest('.tab-group').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  buildDonutChart(type);
+}
+function switchFlowChart(el,period){el.closest('.tab-group').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');buildFlowChart(period)}
 function renderKPI(){
   const{income,expense,balance,savings,payable,receivable}=calcStats();
   document.getElementById('kpi-balance').textContent=fmtFull(balance);
@@ -3718,6 +3827,59 @@ function renderDashGoals(){
   const pendingGoals=DATA.goals.filter(g=>!g.achieved).sort((a,b)=>(a.order??0)-(b.order??0));
   if(!pendingGoals.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎯</div><div class="empty-text">No goals yet</div></div>`;return}
   el.innerHTML=pendingGoals.map(g=>{const pct=Math.min(Math.round((g.saved/g.target)*100),100);return`<div class="goal-card"><div style="font-size:20px;margin-bottom:8px">${g.emoji}</div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${g.name}</div><div style="font-size:10.5px;color:var(--text2);margin-bottom:10px">Target: ${fmt(g.target)}</div><div style="font-size:18px;font-weight:700;font-family:JetBrains Mono;color:${g.color};margin-bottom:5px">${pct}%</div><div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div><div style="font-size:10.5px;color:var(--text2)">${fmt(g.saved)} saved</div></div>`}).join('');
+}
+function renderDashHighlights(){
+  const el=document.getElementById('dash-highlights');if(!el)return;
+  const now=new Date();
+  const todayStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const curMonth=todayStr.slice(0,7);
+  const todaysTxns=DATA.transactions.filter(t=>t.date===todayStr);
+  const todaySpend=todaysTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const todayIncome=todaysTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const todayCount=todaysTxns.length;
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const daysLeft=daysInMonth-now.getDate();
+  const monthExpense=DATA.transactions.filter(t=>t.type==='expense'&&t.date&&t.date.startsWith(curMonth)).reduce((s,t)=>s+t.amount,0);
+  const avgDaily=Math.round(monthExpense/now.getDate())||0;
+  const items=[
+    {emoji:'📆',label:"Today's Spend",value:fmt(todaySpend)},
+    {emoji:'💵',label:"Today's Income",value:fmt(todayIncome)},
+    {emoji:'🧾',label:'Txns Today',value:todayCount},
+    {emoji:'📊',label:'Avg Daily Spend',value:fmt(avgDaily)},
+    {emoji:'⏳',label:'Days Left',value:daysLeft+' days'}
+  ];
+  el.innerHTML=items.map(i=>`<div class="hl-card"><div class="hl-emoji">${i.emoji}</div><div class="hl-body"><div class="hl-label">${i.label}</div><div class="hl-value">${i.value}</div></div></div>`).join('');
+}
+function renderDashAccountSnap(){
+  const el=document.getElementById('dash-account-snap');if(!el)return;
+  ensureAccounts();
+  if(!DATA.accounts.length){el.innerHTML=`<div class="empty" style="padding:10px 0"><div class="empty-text">No accounts yet</div></div>`;return}
+  const dotColors={dbbl:'#4f8ef7',bkash:'#e2136e',nagad:'#f7941d',cash:'#10b981',custom:'#7c3aed'};
+  el.innerHTML=DATA.accounts.map(a=>{
+    const dot=dotColors[a.color]||'#4f8ef7';
+    const icon=a.icon||(a.type==='bank'?'🏦':a.type==='mobile'?'📱':a.type==='cash'?'💵':'💳');
+    return`<div class="acc-snap-card" onclick="switchPage('accounts');setTimeout(()=>selectAccountTab('${a.id}'),60)">
+      <div class="acc-snap-top"><span class="acc-snap-dot" style="background:${dot}"></span><span class="acc-snap-name">${icon} ${a.name}</span></div>
+      <div class="acc-snap-bal">${fmtFull(a.balance)}</div>
+    </div>`;
+  }).join('');
+}
+function renderDashTopCats(){
+  const el=document.getElementById('dash-top-cats');if(!el)return;
+  const now=new Date();
+  const curMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const catExp={};
+  DATA.transactions.filter(t=>t.type==='expense'&&t.date&&t.date.startsWith(curMonth)).forEach(t=>{catExp[t.cat]=(catExp[t.cat]||0)+t.amount});
+  const sorted=Object.entries(catExp).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!sorted.length){el.innerHTML=`<div class="empty" style="padding:10px 0"><div class="empty-text">No spending yet this month</div></div>`;return}
+  const max=sorted[0][1];
+  el.innerHTML=sorted.map(([cat,val])=>`<div class="mini-cat-item">
+    <div class="mini-cat-emoji">${getCatEmoji(cat)}</div>
+    <div class="mini-cat-body">
+      <div class="mini-cat-top"><span class="mini-cat-name">${cat}</span><span class="mini-cat-val">${fmt(val)}</span></div>
+      <div class="mini-cat-bar"><div class="mini-cat-fill" style="width:${Math.round((val/max)*100)}%;background:${getCatColor(cat)}"></div></div>
+    </div>
+  </div>`).join('');
 }
 function resetTxnFilters(){
   const typeSel=document.getElementById('filter-type');
@@ -4566,6 +4728,7 @@ function doTransfer(){
 }
 function renderAll(){
   renderKPI();renderDashTxnList();renderDashBudgets();renderDashGoals();buildFlowChart();buildDonutChart();
+  renderDashHighlights();renderDashAccountSnap();renderDashTopCats();
   // Real-time sync: সব active page re-render করা
   const active=document.querySelector('.page.active');
   if(active){
