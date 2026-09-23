@@ -3476,8 +3476,17 @@ async function deleteMyAccount(){
   try {
     const { getFirestore, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
     if (!db) db = getFirestore(firebaseApp);
-    await deleteDoc(doc(db, 'users', 'google_' + currentUserMeta.uid));
+    // user_meta FIRST: firestore.rules refuse this for blocked/limited accounts, so
+    // nothing is destroyed if the request is refused.
     await deleteDoc(doc(db, 'user_meta', currentUserMeta.uid));
+    const gid = 'google_' + currentUserMeta.uid;
+    for (const id of [gid, gid + '_backup', ...['transactions','budgets','goals','investments'].map(x => gid + '_reset_' + x)]) {
+      await deleteDoc(doc(db, 'users', id)).catch(() => {});
+    }
+    // New-layout subcollections (present only after the Phase-1 migration was run)
+    if (window.FV && window.FV.userService) {
+      try { await window.FV.userService.deleteAccount(currentUserMeta.uid); } catch (_) {}
+    }
   } catch (e) {
     console.warn('deleteMyAccount error:', e);
     toast('Failed to delete account. Please try again.', 'error');
@@ -4844,7 +4853,7 @@ function logout(){
   document.getElementById('onboarding-screen').style.display='none';
   closeSidebar&&closeSidebar();
   localStorage.removeItem('finvault_google_uid');
-  currentUserMeta=null;
+  currentUserMeta=null; window.FV_AUTHZ=null;
   pendingOnboardUser=null; pendingOnboardMeta=null;
   // Also sign out of Google
   if (auth && auth.currentUser) {
@@ -4859,10 +4868,7 @@ function logout(){
 async function ensureAuth() {
   if (auth) return auth;
   const { getAuth, setPersistence, browserLocalPersistence } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
-  if (!firebaseApp) {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-    firebaseApp = initializeApp(firebaseConfig);
-  }
+  await ensureFirebaseApp();
   auth = getAuth(firebaseApp);
   // Keep the sign-in alive in this browser across tab closes and restarts —
   // it only clears when the person signs out, or the browser's own storage
@@ -4900,6 +4906,7 @@ async function onGoogleLoginSuccess(user){
   DOC_PATH = 'users/google_' + user.uid;
 
   const meta = await syncUserMeta(user);
+  await applyServerAuthority(user, meta);   // entitlements + role resolution (rules are the real enforcement)
   if (meta && meta.blocked) {
     showBlockedScreen();
     return;
@@ -4968,6 +4975,43 @@ async function submitOnboarding(){
     errEl.classList.add('show');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Continue →'; }
+  }
+}
+
+// Overlays server-trusted account state onto the meta object and resolves the
+// caller's authorization level. entitlements/<uid> is writable only by owner/staff
+// (firestore.rules); user_meta.role/blocked/limits/restrictions are self-locked.
+// Everything here only drives the UI — Firestore rules enforce the real limits.
+async function applyServerAuthority(user, meta){
+  const fallback = { uid: user.uid, isOwner: false, role: 'user', permissions: [], isStaff: false };
+  try {
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    if (!db) db = getFirestore(firebaseApp);
+    const [entSnap, roleSnap, tok] = await Promise.all([
+      getDoc(doc(db, 'entitlements', user.uid)).catch(() => null),
+      getDoc(doc(db, 'adminRoles', user.uid)).catch(() => null),
+      user.getIdTokenResult()
+    ]);
+    if (entSnap && entSnap.exists()) {
+      const e = entSnap.data();
+      meta.blocked = e.blocked === true;
+      if (e.limits) meta.limits = e.limits;
+      if (e.restrictions) meta.restrictions = e.restrictions;
+      meta.planId = e.planId || 'free';
+    }
+    const c = tok.claims || {};
+    const isOwner = !!(c.firebase && c.firebase.sign_in_provider === 'google.com' && c.email_verified === true
+                       && String(c.email || '').toLowerCase() === CEO_EMAIL.toLowerCase());
+    let authz = { ...fallback, isOwner };
+    if (isOwner) authz = { ...authz, role: 'owner', permissions: ['*'], isStaff: true };
+    else if (roleSnap && roleSnap.exists() && roleSnap.data().active === true) {
+      const r = roleSnap.data();
+      authz = { ...authz, role: r.role, permissions: r.permissions || [], isStaff: true };
+    }
+    window.FV_AUTHZ = authz;
+  } catch (e) {
+    console.warn('applyServerAuthority error:', e);
+    window.FV_AUTHZ = fallback;
   }
 }
 
@@ -5249,10 +5293,15 @@ const firebaseConfig = {
 };
 
 // ─── App configuration ──────────────────────────────────────────────────────
-// Every Google sign-in becomes an equal, normal user. This email is only used
-// to identify the account whose legacy (pre-Google-login) data should be
-// migrated over on first sign-in — it carries no special permissions.
+// CEO_EMAIL identifies the OWNER. It is a UI hint + legacy-data migration key ONLY.
+// Real owner authorization is enforced by firestore.rules (verified Google account
+// with this email) — editing this constant in the browser grants nothing.
 const CEO_EMAIL = "ceo.nayeemuhammad@gmail.com";
+// App Check (optional, free). Leave empty until the reCAPTCHA v3 site key is created
+// (see FIREBASE_SETUP.md §7). Empty = App Check disabled = behaviour unchanged.
+const APPCHECK_SITE_KEY = "";
+// Shared config for the service layer (services/*.js). No secrets belong here.
+window.FV_CONFIG = { firebaseConfig, ownerEmail: CEO_EMAIL, appCheckSiteKey: APPCHECK_SITE_KEY };
 
 // Holds the logged-in user's profile/limits/restrictions once known
 let currentUserMeta = null; // { uid, email, name, role, blocked, limits:{maxTransactions}, restrictions:{disabledPages:[]} }
@@ -5273,51 +5322,34 @@ let DOC_PATH = LEGACY_DOC_PATH;
 
 let firebaseSyncing = false;
 
+// One shared, race-free Firebase app bootstrap (used by initFirebase, ensureAuth, loadAppConfig).
+let _appPromise = null;
+function ensureFirebaseApp() {
+  if (_appPromise) return _appPromise;
+  _appPromise = (async () => {
+    const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    if (APPCHECK_SITE_KEY) {
+      try {
+        const { initializeAppCheck, ReCaptchaV3Provider } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js');
+        if (['localhost', '127.0.0.1'].includes(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        initializeAppCheck(firebaseApp, { provider: new ReCaptchaV3Provider(APPCHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+      } catch (e) { console.warn('App Check init failed:', e); }
+    }
+    return firebaseApp;
+  })().catch(e => { _appPromise = null; throw e; });
+  return _appPromise;
+}
+
+// Prepares Firebase on page load. Cloud data sync starts AFTER Google sign-in
+// (reloadFirestoreForCurrentDoc). The old shared legacy document (users/global_data)
+// is no longer touched before authentication — firestore.rules restrict it to the owner.
 async function initFirebase() {
   try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-    const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    firebaseApp = initializeApp(firebaseConfig);
+    await ensureFirebaseApp();
+    const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
     db = getFirestore(firebaseApp);
-    const docRef = doc(db, DOC_PATH);
-
-    // Try to load from Firestore first
-    try {
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        const remote = snap.data();
-        if (remote && remote.transactions) {
-          DATA = remote;
-          syncCatsFromData(); // Re-point CATS to cloud data
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
-          renderAll();
-          toast('Data synced from cloud ☁️', 'info');
-        }
-      } else {
-        // No remote data — upload local
-        await setDoc(docRef, DATA);
-      }
-    } catch (e) {
-      console.warn('Firestore read error:', e);
-    }
-
-    // Listen for real-time changes
-    onSnapshot(docRef, (snap) => {
-      if (firebaseSyncing) return; // Ignore our own writes
-      if (snap.exists()) {
-        const remote = snap.data();
-        if (remote && remote.transactions) {
-          DATA = remote;
-          syncCatsFromData(); // Re-point CATS to latest cloud data
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
-          renderAll();
-        }
-      }
-    }, (err) => {
-      console.warn('Firestore listener error:', err);
-    });
-
-    console.log('✅ Firebase connected');
+    console.log('✅ Firebase ready (cloud sync starts after sign-in)');
   } catch (e) {
     console.warn('Firebase init failed, using localStorage only:', e);
     toast('Offline mode – data saved locally', 'info');
@@ -5328,7 +5360,7 @@ async function initFirebase() {
 const _origSaveData = saveData;
 window.saveData = async function() {
   _origSaveData(); // Always save to localStorage first
-  if (!db) return;
+  if (!db || DOC_PATH === LEGACY_DOC_PATH) return; // no cloud write until signed in
   firebaseSyncing = true;
   try {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
@@ -5354,10 +5386,7 @@ let currentAppConfig = null;
 async function loadAppConfig(){
   try {
     const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    if (!firebaseApp) {
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-      firebaseApp = initializeApp(firebaseConfig);
-    }
+    await ensureFirebaseApp();
     if (!db) db = getFirestore(firebaseApp);
     const snap = await getDoc(doc(db, APP_CONFIG_DOC));
     if (snap.exists()) {
@@ -5562,6 +5591,13 @@ function loadGroupSplits(splits){
     addGroupRow(s);
   });
 }
+</script>
+<!-- FinVault service layer (Phase 1). Optional at runtime: the app keeps working if this fails to load
+     (e.g. opened via file://). Requires hosting over http(s). -->
+<script type="module">
+  import('./services/index.js')
+    .then(m => { window.FV = m.FV; window.dispatchEvent(new Event('fv-ready')); })
+    .catch(e => console.warn('FV service layer unavailable:', e && e.message));
 </script>
 </body>
 </html>
