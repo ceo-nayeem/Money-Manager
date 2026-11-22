@@ -1,0 +1,19 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+.firebaserc.local
+
+# Python (icon tool)
+__pycache__/
+*.pyc
+
+# Never commit secrets
+.env
+*.pem
+*service-account*.json
