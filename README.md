@@ -1,5 +1,7 @@
 # FinVault
 
+> **ডিজাইন:** ৪টা থিম প্যালেট (Volt লাইম · Cobalt নীল · Ember কমলা · Violet বেগুনি), প্রতিটা ডার্ক ও লাইট — ওপরে-ডানের চাঁদ/সূর্য আইকন থেকে বদলানো যায়। সার্চ খুলতে **Ctrl/Cmd + K** বা **/** চাপুন। রঙ বদলাতে `style.css` → `SECTION 01 · THEMES`।
+
 প্রাইভেট মানি-ম্যানেজার ওয়েব অ্যাপ — Google লগইন (সেভ থাকে), Firebase সিঙ্ক, চার্ট, বাজেট, গোল, অফলাইন, PWA ইনস্টল।
 কোনো বিল্ড-টুল লাগে না: ফাইল আপলোড করলেই চলে।
 
@@ -44,19 +46,19 @@ finvault/
 
 | # | সেকশন | কী আছে |
 |---|---|---|
-| 01 | THEMES | Colour palettes: dark/light × emerald, sapphire, burgundy, onyx. Edit colours here. |
-| 02 | BASE | Fonts, radius/shadow/spacing variables, reset, page background. |
-| 03 | LAYOUT | App shell, sidebar, top bar, dropdown menus. |
-| 04 | COMPONENTS | Buttons, chips, tabs, cards, progress bars, form fields, toast, status chips. |
+| 01 | THEMES | Colour palettes: dark/light × volt (lime), cobalt (blue), ember (orange), violet. Edit colours here. |
+| 02 | BASE | Fonts, radius/shadow/spacing variables, reset, page background (glow + dot grid). |
+| 03 | LAYOUT | App shell, floating sidebar, top bar (search, New, profile), dropdown menus. |
+| 04 | COMPONENTS | Buttons, chips, segmented tabs, cards, progress bars, form fields, toast. |
 | 05 | LOGIN & LOADING | Login screen and the loading splash. |
-| 06 | DASHBOARD | Dashboard page. |
+| 06 | DASHBOARD | Dashboard: quick actions, notched stat cards, charts, activity table, accounts, debts, budgets, goals. |
 | 07 | TRANSACTIONS | Transactions page. |
 | 08 | ACCOUNTS | Accounts page and payment cards. |
 | 09 | BUDGETS · GOALS · INVESTMENTS · REPORTS | Budgets, goals, investments and reports pages. |
 | 10 | DATA & BACKUP · PROFILE | Data & backup page and profile page. |
 | 11 | MODALS & PICKERS | Modals, date picker, time picker. |
-| 12 | MOBILE TAB BAR | Bottom navigation bar on phones. |
-| 13 | RESPONSIVE | Tablet/phone breakpoints. Keep this AFTER the page sections so it can override them. |
+| 12 | MOBILE TAB BAR | Floating pill navigation on phones. |
+| 13 | RESPONSIVE | Tablet/phone breakpoints (mobile hero card, bottom sheets). Keep this AFTER the page sections. |
 | 14 | INSTALL APP | “Install app” card/modal and session-restore helper. |
 
 ### app.js
@@ -94,7 +96,7 @@ finvault/
 1. **কী বদলাবেন সেটা বলুন, আর শুধু সংশ্লিষ্ট ফাইল দিন।** শুধু রঙ/ডিজাইন → `style.css`; ফিচার/লজিক → `app.js`; কাঠামো → `index.html`।
 2. **ফাইল বড় (`app.js` ≈ ২০০ KB)।** তাই বলতে পারেন: “শুধু `SECTION 10 · DASHBOARD` বদলাও, বাকি যেমন আছে তেমন রাখো” — Claude শুধু ওই অংশ ঠিক করে দেবে।
 3. **Claude আপডেটেড ফাইল দিলে** সেটা একই নামে পুরনোটার জায়গায় বসান।
-4. **নতুন ফাইল যোগ করলে** (যেমন নতুন ছবি/ফাইল যেটা অফলাইনে লাগবে): `sw.js`-এর `SHELL` তালিকায় নাম যোগ করুন আর `VERSION` এক বাড়ান (`fv-v3` → `fv-v4`)। শুধু আগের ফাইল বদলালে এটা লাগে না।
+4. **নতুন ফাইল যোগ করলে** (যেমন নতুন ছবি/ফাইল যেটা অফলাইনে লাগবে): `sw.js`-এর `SHELL` তালিকায় নাম যোগ করুন আর `VERSION` এক বাড়ান (`fv-v4` → `fv-v5`)। শুধু আগের ফাইল বদলালে এটা লাগে না।
 
 ---
 

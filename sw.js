@@ -6,7 +6,7 @@
  * - Firebase / Google API traffic (Auth, Firestore, sign-in popup) is NEVER intercepted.
  * Bump VERSION only when you ADD or REMOVE files (so the offline file list is rebuilt).
  */
-const VERSION = 'fv-v3';
+const VERSION = 'fv-v4';
 const SHELL_CACHE = VERSION + '-shell';
 const RUNTIME_CACHE = VERSION + '-runtime';
 
